@@ -123,28 +123,32 @@
             return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
 
-        t.render(function(){
-            return t.getRestApi().isAuthorized()
-            .then(function(authorized) {
-                if (!authorized) {
-                    document.getElementById('auth-section').classList.remove('hidden');
-                    document.getElementById('main-content').classList.add('hidden');
-                    t.sizeTo(120);
-                } else {
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('main-content').classList.remove('hidden');
-                    return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar')
-                    .then(function(m){
-                        // This part is the "Force Refresh"
-                        boardMembers = m.members;
-                        // Let's double check if Trello gave us avatars by logging to console (Press F12 to see)
-                        console.log('Board Members Loaded:', boardMembers); 
-                        return renderChecklist();
-                    });
-                }
-            });
-        });
+t.render(function(){
+    return t.getRestApi().isAuthorized()
+    .then(function(authorized) {
+        if (!authorized) {
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            t.sizeTo(120);
+        } else {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
 
+            // Simplified: Ask for 'members' generally
+            return t.board('members')
+            .then(function(board){
+                // Trello returns the board object; we want the members array
+                boardMembers = board.members || []; 
+                return renderChecklist();
+            })
+            .catch(function(err) {
+                console.error("Board loading error:", err);
+                return renderChecklist(); // Run anyway so the list doesn't stay empty
+            });
+        }
+    });
+});
+        
         function renderChecklist() {
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
