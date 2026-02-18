@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <style>
+        .item { margin: 8px 0; display: flex; align-items: center; }
+        .indent { margin-left: 30px; border-left: 2px solid #0079bf; padding-left: 10px; }
+        input[type="checkbox"] { transform: scale(1.2); margin-right: 12px; cursor: pointer; }
+        input[type="text"] { border: 1px solid transparent; background: transparent; width: 100%; padding: 4px; }
+        input[type="text"]:focus { background: #fff; border: 1px solid #ddd; outline: none; }
+    </style>
+</head>
+<body>
+    <div id="list"></div>
+    <button id="add-main" class="mod-primary">Add Task</button>
+    <button id="add-sub">Add Sub-task</button>
+
+    <script>
+        var t = TrelloPowerUp.iframe();
+
+        t.render(function(){
+            return t.get('card', 'shared', 'checklistData', [])
+            .then(function(data){
+                const listDiv = document.getElementById('list');
+                listDiv.innerHTML = '';
+                data.forEach((item, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'item' + (item.isSub ? ' indent' : '');
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = item.checked;
+                    cb.onchange = () => { item.checked = cb.checked; save(data); };
+                    const txt = document.createElement('input');
+                    txt.type = 'text';
+                    txt.value = item.text;
+                    txt.onblur = () => { item.text = txt.value; save(data); };
+                    div.append(cb, txt);
+                    listDiv.appendChild(div);
+                });
+            });
+        });
+
+        function save(data) {
+            const allDone = data.length > 0 && data.every(i => i.checked);
+            return t.set('card', 'shared', 'checklistData', data)
+                .then(() => {
+                    if (allDone) {
+                        // This allows Trello Automation to "see" the event
+                        return t.comment({ text: "All nested tasks are complete! ✅" });
+                    }
+                });
+        }
+
+        document.getElementById('add-main').onclick = () => add(false);
+        document.getElementById('add-sub').onclick = () => add(true);
+
+        function add(isSub) {
+            t.get('card', 'shared', 'checklistData', [])
+            .then(data => {
+                data.push({ text: 'New Task', checked: false, isSub: isSub });
+                save(data);
+            });
+        }
+    </script>
+</body>
+</html>
