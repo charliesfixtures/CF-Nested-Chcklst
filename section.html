@@ -39,9 +39,10 @@
       appName: 'Process Checklist'
     });
 
-    // 2. The Render Logic
     t.render(function(){
-        // Now that the API is configured, this won't crash!
+      // We wrap the auth check in a try/catch so even if it fails, 
+      // the checklist still tries to load.
+      try {
         return t.getRestApi().isAuthorized()
         .then(function(authorized) {
             if (!authorized) {
@@ -51,17 +52,18 @@
             } else {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
-                
-                // We run this immediately and after a short delay
                 renderChecklist();
-                setTimeout(renderChecklist, 500);
             }
         })
-        .catch(function(err) {
-            // Fallback: Show the content anyway if Auth check fails
+        .catch(function(e) { 
+            console.log("Auth helper skipped, loading list directly.");
             document.getElementById('main-content').classList.remove('hidden');
-            renderChecklist();
+            renderChecklist(); 
         });
+      } catch (e) {
+        document.getElementById('main-content').classList.remove('hidden');
+        renderChecklist();
+      }
     });
 
     // 3. Auth Button
