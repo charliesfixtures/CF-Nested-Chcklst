@@ -26,25 +26,32 @@
         color: inherit; font-size: 14px; outline: none;
     }
 
-    /* Controls Container (Date & User) */
+    /* --- THE REVEAL MAGIC --- */
     .item-controls {
-        display: flex; align-items: center; opacity: 0.3; transition: opacity 0.2s;
+        display: flex; align-items: center; 
+        opacity: 0; /* Completely hidden */
+        transition: opacity 0.2s;
     }
     
-    .item:hover .item-controls { opacity: 1; }
+    .item:hover .item-controls { opacity: 1; } /* Visible on hover */
 
-    /* Styling the pickers to look like icons/badges */
+    /* Individual control wrappers (no background boxes anymore) */
     .control-wrapper {
         display: flex; align-items: center; margin-left: 8px;
-        background: rgba(255,255,255,0.1); border-radius: 3px; padding: 2px 4px;
     }
 
+    /* Stylizing pickers to look like pure icons */
     select, input[type="date"] {
-        border: none; background: transparent; color: inherit; font-size: 11px;
-        cursor: pointer; outline: none; max-width: 80px;
+        border: none; background: transparent; color: transparent; /* Hide text */
+        cursor: pointer; outline: none; width: 20px; font-size: 14px;
+        appearance: none; -webkit-appearance: none; /* Hide default dropdown arrow */
     }
+    
+    /* Make the icons themselves slightly visible */
+    .control-wrapper span { opacity: 0.7; }
+    .control-wrapper:hover span { opacity: 1; color: #0079bf; }
 
-    /* Hide the delete button unless hovering */
+    /* Delete button (hidden until hover) */
     .delete-btn {
         margin-left: 8px; color: #888; cursor: pointer; font-size: 18px;
         visibility: hidden; padding: 0 4px;
@@ -131,11 +138,12 @@ data.forEach((item, i) => {
     const controls = document.createElement('div');
     controls.className = 'item-controls';
 
-    // Member Selector
+    // Member Selector (styled as pure icon)
     const memWrap = document.createElement('div');
     memWrap.className = 'control-wrapper';
-    memWrap.innerHTML = '<span style="margin-right:4px">👤</span>'; // Simple icon
+    memWrap.innerHTML = '<span>👤</span>'; 
     const sel = document.createElement('select');
+    sel.title = "Assign Member";
     sel.innerHTML = '<option value="">Assign</option>';
     boardMembers.forEach(m => {
         const opt = document.createElement('option');
@@ -147,12 +155,13 @@ data.forEach((item, i) => {
     sel.onchange = () => { item.idMember = sel.value; saveAndSync(data); };
     memWrap.appendChild(sel);
 
-    // Date Picker
+    // Date Picker (styled as pure icon)
     const dateWrap = document.createElement('div');
     dateWrap.className = 'control-wrapper';
-    dateWrap.innerHTML = '<span style="margin-right:4px">🕒</span>'; // Simple icon
+    dateWrap.innerHTML = '<span>🕒</span>';
     const date = document.createElement('input');
     date.type = 'date';
+    date.title = "Set Due Date";
     date.value = item.dueDate || '';
     date.onchange = () => { item.dueDate = date.value; saveAndSync(data); };
     dateWrap.appendChild(date);
@@ -161,6 +170,7 @@ data.forEach((item, i) => {
     const del = document.createElement('span');
     del.className = 'delete-btn';
     del.innerHTML = '&times;';
+    del.title = "Delete Item";
     del.onclick = () => { data.splice(i, 1); saveAndSync(data); };
 
     controls.append(memWrap, dateWrap);
