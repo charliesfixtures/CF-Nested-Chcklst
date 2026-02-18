@@ -84,8 +84,25 @@
             padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px;
         }
         .mod-primary { background: #0079bf; color: white; }
+
+        /* Strikethrough and fading for completed items */
+        .item.is-checked .task-input {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .item.is-checked .avatar, 
+        .item.is-checked .date-badge {
+            opacity: 0.5;
+        }
+
+        /* Date State Colors */
+        .date-due-now { color: #eb5a46 !important; font-weight: bold; } /* Red */
+        .date-overdue { color: #eb5a46 !important; font-weight: bold; } /* Red */
+        .date-soon { color: #f2d600 !important; font-weight: bold; }    /* Yellow */
+        
     </style>
 </head>
+    
 <body onclick="closeAllMenus()">
     <div id="auth-section" class="hidden" style="padding: 20px; text-align: center;">
         <button id="auth-btn" class="mod-primary">Connect Trello</button>
@@ -111,55 +128,64 @@
             document.querySelectorAll('.member-menu').forEach(m => m.remove());
         }
 
-function getAvatarUrl(member) {
-    if (!member) return null;
+    function getAvatarUrl(member) {
+        if (!member) return null;
 
-    // Use avatarUrl if it exists, it's usually the most direct
-    let source = member.avatarUrl || member.avatar;
+        // Use avatarUrl if it exists, it's usually the most direct
+        let source = member.avatarUrl || member.avatar;
 
-    if (!source) return null;
+        if (!source) return null;
 
-    // If the source is already a full URL (starts with http)
-    if (source.indexOf('http') === 0) {
+        // If the source is already a full URL (starts with http)
+        if (source.indexOf('http') === 0) {
         // Just clean up the size at the end to ensure it's 30px
         return source.replace(/\/(50|170)\.png$/, '/30.png');
-    }
+        }
 
-    // If it's just a hash/ID code, build the URL correctly
-    return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
-}
+        // If it's just a hash/ID code, build the URL correctly
+        return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
+        }
         
         function formatDate(dateStr) {
-            if(!dateStr) return "";
+            if (!dateStr) return "";
             const d = new Date(dateStr);
-            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const now = new Date();
+            const currentYear = now.getFullYear();
+    
+            const options = { month: 'short', day: 'numeric' };
+            // If the date isn't in 2026, add the year to the display
+            if (d.getFullYear() !== currentYear) {
+                options.year = 'numeric';
+            }
+    
+            return d.toLocaleDateString(undefined, options);
         }
 
-t.render(function(){
-    return t.getRestApi().isAuthorized()
-    .then(function(authorized) {
-        if (!authorized) {
-            document.getElementById('auth-section').classList.remove('hidden');
-            document.getElementById('main-content').classList.add('hidden');
-            t.sizeTo(120);
-        } else {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
+    t.render(function(){
+        return t.getRestApi().isAuthorized()
+        .then(function(authorized) {
+            if (!authorized) {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+                t.sizeTo(120);
+            } else {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
 
-            // Simplified: Ask for 'members' generally
-            return t.board('members')
-            .then(function(board){
-                // Trello returns the board object; we want the members array
-                boardMembers = board.members || []; 
-                return renderChecklist();
-            })
-            .catch(function(err) {
-                console.error("Board loading error:", err);
-                return renderChecklist(); // Run anyway so the list doesn't stay empty
-            });
-        }
+                // Simplified: Ask for 'members' generally
+                return t.board('members')
+                .then(function(board){
+                    // Trello returns the board object; we want the members array
+                    boardMembers = board.members || []; 
+                    return renderChecklist();
+                })
+                .catch(function(err) {
+                    console.error("Board loading error:", err);
+                    return renderChecklist(); // Run anyway so the list doesn't stay empty
+                });
+            }
+        });
     });
-});
         
         function renderChecklist() {
             return t.get('card', 'shared', 'checklistData', [])
@@ -169,7 +195,7 @@ t.render(function(){
                 
                 data.forEach((item, i) => {
                     const div = document.createElement('div');
-                    div.className = 'item' + (item.isSub ? ' indent' : '');
+                    div.className = 'item' + (item.isSub ? ' indent' : '') + (item.checked ? ' is-checked' : '');
                     
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
@@ -189,8 +215,21 @@ t.render(function(){
                     const dateWrap = document.createElement('div');
                     dateWrap.className = 'control-wrapper' + (item.dueDate ? '' : ' is-empty');
                     
+                    // Calculate if date is overdue, soon, or normal
+                    let dateClass = "";
+                    if (item.dueDate && !item.checked) {
+                        const due = new Date(item.dueDate + 'T00:00:00'); // Ensure local time
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        const diff = (due - today) / (1000 * 60 * 60 * 24);
+
+                        if (diff < 0) dateClass = "date-overdue";         // Before today
+                        else if (diff < 1) dateClass = "date-due-now";    // Today
+                        else if (diff < 2) dateClass = "date-soon";       // Tomorrow
+                    }
+
                     const dateDisplay = item.dueDate ? 
-                        `<div class="date-badge">📅 ${formatDate(item.dueDate)}</div>` : 
+                        `<div class="date-badge ${dateClass}">📅 ${formatDate(item.dueDate)}</div>` : 
                         `<span>📅</span>`;
                     dateWrap.innerHTML = dateDisplay;
 
