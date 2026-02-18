@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
-  <head><script src="https://p.trellocdn.com/power-up.min.js"></script></head>
+  <head>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  </head>
   <body>
     <script>
       TrelloPowerUp.initialize({
@@ -11,9 +13,23 @@
             content: {
               type: 'iframe',
               url: t.signUrl('./section.html'),
-              height: 300 
+              height: 250
             }
           };
+        },
+        // ADDING THIS BACKUP BUTTON
+        'card-buttons': function(t, options) {
+          return [{
+            icon: 'https://cdn-icons-png.flaticon.com/512/2666/2666505.png',
+            text: 'Open Nested List',
+            callback: function(t) {
+              return t.popup({
+                title: 'Nested Checklist',
+                url: './section.html',
+                height: 300
+              });
+            }
+          }];
         }
       });
     </script>
