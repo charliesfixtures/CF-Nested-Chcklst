@@ -114,18 +114,19 @@
 function getAvatarUrl(member) {
     if (!member) return null;
 
-    // 1. Priority: If we have an avatar hash, use the official S3 bucket
-    // This is the most stable way to get Trello photos
-    if (member.avatar && member.avatar.length > 0) {
-        return "https://trello-members.s3.amazonaws.com/" + member.id + "/" + member.avatar + "/30.png";
+    // Use avatarUrl if it exists, it's usually the most direct
+    let source = member.avatarUrl || member.avatar;
+
+    if (!source) return null;
+
+    // If the source is already a full URL (starts with http)
+    if (source.indexOf('http') === 0) {
+        // Just clean up the size at the end to ensure it's 30px
+        return source.replace(/\/(50|170)\.png$/, '/30.png');
     }
 
-    // 2. Secondary: If Trello provides a full URL, use it as is
-    if (member.avatarUrl && member.avatarUrl.includes('http')) {
-        return member.avatarUrl;
-    }
-
-    return null; // Fallback to initials
+    // If it's just a hash/ID code, build the URL correctly
+    return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
 }
         
         function formatDate(dateStr) {
