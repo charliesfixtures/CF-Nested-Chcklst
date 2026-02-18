@@ -8,7 +8,7 @@
             padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; 
         }
 
-        #main-content { padding-bottom: 60px; } 
+        #main-content { padding-bottom: 80px; } 
 
         .item { 
             display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px;
@@ -28,13 +28,11 @@
             display: flex; align-items: center; margin-left: 8px; flex-shrink: 0;
         }
 
-        /* Hide controls only if data is empty; if data exists, show it always */
         .control-wrapper {
             position: relative; display: flex; align-items: center; justify-content: center;
             cursor: pointer; margin-left: 6px; min-width: 24px; height: 24px;
         }
 
-        /* Hide specific empty icons until hover */
         .is-empty { opacity: 0; transition: opacity 0.15s; }
         .item:hover .is-empty { opacity: 1; }
 
@@ -46,12 +44,11 @@
             color: #172b4d; overflow: hidden; object-fit: cover;
         }
 
-        /* Date Badge Styling (Like Trello) */
+        /* Date Badge Styling */
         .date-badge {
             font-size: 12px; padding: 2px 6px; border-radius: 3px;
             background: rgba(255,255,255,0.15); display: flex; align-items: center; gap: 4px;
         }
-        .date-badge:hover { background: rgba(255,255,255,0.25); }
 
         /* Member Picker Dropdown */
         .member-menu {
@@ -66,13 +63,12 @@
         .member-option:hover { background: #f4f5f7; }
         .member-option .avatar { margin-right: 10px; flex-shrink: 0; }
 
-        /* Hidden Date Overlay */
         .date-input-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer; z-index: 2;
         }
 
-        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; }
+        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; cursor: pointer; }
         .item:hover .delete-btn { opacity: 0.6; }
         .delete-btn:hover { opacity: 1; color: #eb5a46; }
 
@@ -117,6 +113,13 @@
             return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
 
+        // The helper that fixed the photos
+        function getAvatarUrl(member) {
+            if (member.avatarUrl) return `${member.avatarUrl}/30.png`;
+            if (member.avatar) return `https://trello-avatars.s3.amazonaws.com/${member.avatar}/30.png`;
+            return null;
+        }
+
         t.render(function(){
             return t.getRestApi().isAuthorized()
             .then(function(authorized) {
@@ -127,8 +130,9 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                        return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar')
-                        .then(function(m){
+                    // We added specific fields here to get the avatar IDs
+                    return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar')
+                    .then(function(m){
                         boardMembers = m.members;
                         return renderChecklist();
                     });
@@ -136,12 +140,6 @@
             });
         });
 
-        function getAvatarUrl(member) {
-            if (member.avatarUrl) return `${member.avatarUrl}/30.png`;
-            if (member.avatar) return `https://trello-avatars.s3.amazonaws.com/${member.avatar}/30.png`;
-            return null; 
-        }
-        
         function renderChecklist() {
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
@@ -166,15 +164,10 @@
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // 1. DATE PICKER (Now on the Left)
+                    // 1. DATE PICKER
                     const dateWrap = document.createElement('div');
                     dateWrap.className = 'control-wrapper' + (item.dueDate ? '' : ' is-empty');
-                    
-                    const dateDisplay = item.dueDate ? 
-                        `<div class="date-badge">📅 ${formatDate(item.dueDate)}</div>` : 
-                        `<span>📅</span>`;
-                    dateWrap.innerHTML = dateDisplay;
-
+                    dateWrap.innerHTML = item.dueDate ? `<div class="date-badge">📅 ${formatDate(item.dueDate)}</div>` : `<span>📅</span>`;
                     const dateInp = document.createElement('input');
                     dateInp.type = 'date';
                     dateInp.className = 'date-input-overlay';
@@ -182,24 +175,18 @@
                     dateInp.onchange = () => { item.dueDate = dateInp.value; save(data); };
                     dateWrap.appendChild(dateInp);
 
-                    // 2. MEMBER PICKER (Now on the Right)
+                    // 2. MEMBER PICKER
                     const memWrap = document.createElement('div');
                     memWrap.className = 'control-wrapper' + (item.idMember ? '' : ' is-empty');
                     const assigned = boardMembers.find(m => m.id === item.idMember);
                     
                     if (assigned) {
-                        const avatarUrl = getAvatarUrl(assigned); // Use our new helper
-                        if (avatarUrl) {
-                            // If they have a photo, show it!
-                            memWrap.innerHTML = `<img class="avatar" src="${avatarUrl}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">`;
-                        } else {
-                            // If no photo, show the colored circle with initials
-                            memWrap.innerHTML = `<div class="avatar" style="width:22px; height:22px; border-radius:50%; background:#dfe1e6; display:flex; align-items:center; justify-content:center; font-size:10px;">${assigned.initials}</div>`;
-                        }
+                        const avatarUrl = getAvatarUrl(assigned);
+                        memWrap.innerHTML = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${assigned.initials}</div>`;
                     } else {
-                    memWrap.innerHTML = '<span class="star-icon">⭐</span>'; 
+                        memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
                     }
-                    
+
                     memWrap.onclick = (e) => {
                         e.stopPropagation();
                         closeAllMenus();
@@ -208,14 +195,14 @@
                         
                         const noneOpt = document.createElement('div');
                         noneOpt.className = 'member-option';
-                        noneOpt.innerHTML = <div class="avatar" style="background:#f4f5f7; color:#888;">?</div><span class="member-name">None</span>;
+                        noneOpt.innerHTML = `<div class="avatar">?</div><span>None</span>`;
                         noneOpt.onclick = () => { item.idMember = null; save(data); };
                         menu.appendChild(noneOpt);
 
                         boardMembers.forEach(m => {
                             const opt = document.createElement('div');
                             opt.className = 'member-option';
-                            const avatarUrl = getAvatarUrl(m); 
+                            const avatarUrl = getAvatarUrl(m);
                             const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
                             opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
                             opt.onclick = () => { item.idMember = m.id; save(data); };
@@ -224,7 +211,6 @@
                         memWrap.appendChild(menu);
                     };
 
-                    // 3. DELETE
                     const del = document.createElement('div');
                     del.className = 'delete-btn';
                     del.innerHTML = '❌';
