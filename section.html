@@ -133,8 +133,12 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar').then(function(m){
+                    return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar')
+                    .then(function(m){
+                        // This part is the "Force Refresh"
                         boardMembers = m.members;
+                        // Let's double check if Trello gave us avatars by logging to console (Press F12 to see)
+                        console.log('Board Members Loaded:', boardMembers); 
                         return renderChecklist();
                     });
                 }
