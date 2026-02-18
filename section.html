@@ -3,17 +3,44 @@
 <head>
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 10px; margin: 0; background: #f4f5f7; }
-        #main-content { min-height: 150px; display: block; width: 100%; }
-        .item { margin: 8px 0; display: flex; align-items: center; }
-        .indent { margin-left: 25px; border-left: 2px solid #dfe1e6; padding-left: 10px; }
-        input[type="checkbox"] { cursor: pointer; margin-right: 10px; }
-        input[type="text"] { border: 1px solid transparent; background: transparent; width: 100%; padding: 4px; }
-        input[type="text"]:focus { background: #fff; border: 1px solid #0079bf; outline: none; border-radius: 3px; }
-        .footer { margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; }
-        .hidden { display: none !important; }
-    </style>
+<style>
+    /* Reset for Trello's Iframe */
+    body { 
+        font-family: sans-serif; 
+        padding: 10px; 
+        margin: 0; 
+        /* This makes the background transparent so it follows Trello's theme */
+        background: transparent; 
+        color: inherit; 
+    }
+
+    #main-content { 
+        display: block !important; 
+        min-height: 200px; /* Force it to stay open 200px tall */
+        width: 100%;
+        border: 1px dashed #888; /* Temporary border so we can see the box */
+    }
+
+    .item { margin: 10px 0; display: flex; align-items: center; }
+    .indent { margin-left: 25px; border-left: 2px solid #5e6c84; padding-left: 12px; }
+    
+    /* Make text visible in Dark Mode */
+    input[type="text"] { 
+        color: inherit; 
+        background: rgba(255,255,255,0.05); 
+        border: 1px solid transparent; 
+        width: 100%;
+        padding: 5px;
+    }
+    
+    input[type="text"]:focus { 
+        background: #fff; 
+        color: #000; 
+    }
+
+    .footer { margin-top: 20px; border-top: 1px solid #5e6c84; padding-top: 10px; }
+    .hidden { display: none !important; }
+</style>
 </head>
 <body>
     <div id="auth-section" class="hidden">
