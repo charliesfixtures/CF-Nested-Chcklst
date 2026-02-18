@@ -5,10 +5,10 @@
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif;
-            padding: 0; margin: 0; background: transparent; color: inherit; overflow: hidden; 
+            padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; 
         }
 
-        #main-content { padding-bottom: 8px; }
+        #main-content { padding-bottom: 50px; } /* Extra space for dropdowns */
 
         .item { 
             display: flex; align-items: center; padding: 2px 8px; position: relative; min-height: 32px;
@@ -23,7 +23,7 @@
             color: inherit; font-size: 14px; outline: none; min-width: 0;
         }
 
-        /* --- TIGHTENED ACTION BAR --- */
+        /* Action Bar */
         .item-controls {
             display: flex; align-items: center; opacity: 0; transition: opacity 0.15s;
             margin-left: 4px; flex-shrink: 0;
@@ -31,34 +31,49 @@
         .item:hover .item-controls { opacity: 1; }
 
         .control-wrapper {
-            position: relative; width: 22px; height: 22px;
+            position: relative; width: 24px; height: 24px;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-left: 2px;
+            cursor: pointer; margin-left: 4px;
         }
+
+        /* Avatar Styling */
+        .avatar {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #dfe1e6; display: flex; align-items: center;
+            justify-content: center; font-size: 10px; font-weight: bold;
+            color: #172b4d; overflow: hidden; object-fit: cover; border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Member Picker Dropdown */
+        .member-menu {
+            position: absolute; top: 28px; right: 0; z-index: 1000;
+            background: #ffffff; border-radius: 3px; 
+            box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
+            width: 200px; padding: 4px 0; color: #172b4d;
+        }
+        .member-option {
+            display: flex; align-items: center; padding: 8px 12px; cursor: pointer;
+        }
+        .member-option:hover { background: #f4f5f7; }
+        .member-option .avatar { margin-right: 10px; flex-shrink: 0; }
+        .member-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* Icon styling */
-        .control-wrapper span { font-size: 15px; pointer-events: none; z-index: 1; opacity: 0.8; }
-        
-        /* Member (Star) Color */
-        .star-icon { color: #f2d600; } 
-        /* Date (Calendar) Color */
-        .date-icon { color: #5e6c84; } 
+        .star-icon { color: #f2d600; font-size: 16px; }
+        .date-icon { font-size: 16px; }
 
-        .control-wrapper select, 
-        .control-wrapper input[type="date"] {
+        /* Hidden Date Input stacked over icon */
+        .date-input-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; cursor: pointer; z-index: 2; border: none;
+            opacity: 0; cursor: pointer; z-index: 2;
         }
-
-        /* Fix for Date Picker click area */
         input[type="date"]::-webkit-calendar-picker-indicator {
             position: absolute; left: 0; top: 0; width: 100%; height: 100%;
             margin: 0; padding: 0; cursor: pointer;
         }
 
-        /* Delete (Cross Mark) Styling */
-        .delete-btn span { font-size: 16px; color: #5e6c84; }
-        .delete-btn:hover span { color: #eb5a46; opacity: 1; }
+        .delete-btn { font-size: 16px; opacity: 0.7; }
+        .delete-btn:hover { opacity: 1; }
 
         .footer { padding: 8px; display: flex; gap: 8px; }
         .hidden { display: none !important; }
@@ -71,7 +86,7 @@
         .mod-primary { background: #0079bf; color: white; }
     </style>
 </head>
-<body>
+<body onclick="closeAllMenus()">
     <div id="auth-section" class="hidden" style="padding: 20px; text-align: center;">
         <button id="auth-btn" class="mod-primary">Connect Trello</button>
     </div>
@@ -86,11 +101,15 @@
 
     <script>
         var t = TrelloPowerUp.iframe({
-          appKey: 'YOUR_API_KEY_HERE',
+          appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
           appName: 'Process Checklist'
         });
 
         var boardMembers = [];
+
+        function closeAllMenus() {
+            document.querySelectorAll('.member-menu').forEach(m => m.remove());
+        }
 
         t.render(function(){
             return t.getRestApi().isAuthorized()
@@ -102,7 +121,6 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    
                     return t.board('members').then(function(m){
                         boardMembers = m.members;
                         return renderChecklist();
@@ -135,40 +153,58 @@
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // 1. Member (Star)
+                    // 1. Member Picker (Avatar or Star)
                     const memWrap = document.createElement('div');
                     memWrap.className = 'control-wrapper';
-                    memWrap.title = "Assign Member";
-                    memWrap.innerHTML = '<span class="star-icon">⭐</span>'; 
-                    const sel = document.createElement('select');
-                    sel.innerHTML = '<option value="">Assign</option>';
-                    boardMembers.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.id;
-                        opt.text = m.initials || m.fullName;
-                        if(item.idMember === m.id) opt.selected = true;
-                        sel.appendChild(opt);
-                    });
-                    sel.onchange = () => { item.idMember = sel.value; saveAndSync(data); };
-                    memWrap.appendChild(sel);
+                    const assigned = boardMembers.find(m => m.id === item.idMember);
+                    
+                    if (assigned) {
+                        const avatarSrc = assigned.avatarUrl ? assigned.avatarUrl + '/30.png' : null;
+                        memWrap.innerHTML = avatarSrc ? `<img class="avatar" src="${avatarSrc}">` : `<div class="avatar">${assigned.initials}</div>`;
+                    } else {
+                        memWrap.innerHTML = '<span class="star-icon">⭐</span>'; 
+                    }
 
-                    // 2. Date (Calendar)
+                    memWrap.onclick = (e) => {
+                        e.stopPropagation();
+                        closeAllMenus();
+                        const menu = document.createElement('div');
+                        menu.className = 'member-menu';
+                        
+                        // "None" option
+                        const noneOpt = document.createElement('div');
+                        noneOpt.className = 'member-option';
+                        noneOpt.innerHTML = `<div class="avatar">?</div><span class="member-name">None</span>`;
+                        noneOpt.onclick = () => { item.idMember = null; saveAndSync(data); };
+                        menu.appendChild(noneOpt);
+
+                        boardMembers.forEach(m => {
+                            const opt = document.createElement('div');
+                            opt.className = 'member-option';
+                            const img = m.avatarUrl ? `<img class="avatar" src="${m.avatarUrl}/30.png">` : `<div class="avatar">${m.initials}</div>`;
+                            opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
+                            opt.onclick = () => { item.idMember = m.id; saveAndSync(data); };
+                            menu.appendChild(opt);
+                        });
+                        memWrap.appendChild(menu);
+                    };
+
+                    // 2. Date Picker
                     const dateWrap = document.createElement('div');
                     dateWrap.className = 'control-wrapper';
-                    dateWrap.title = "Set Due Date";
                     dateWrap.innerHTML = '<span class="date-icon">📅</span>';
-                    const date = document.createElement('input');
-                    date.type = 'date';
-                    date.value = item.dueDate || '';
-                    date.onchange = () => { item.dueDate = date.value; saveAndSync(data); };
-                    dateWrap.appendChild(date);
+                    const dateInp = document.createElement('input');
+                    dateInp.type = 'date';
+                    dateInp.className = 'date-input-overlay';
+                    dateInp.value = item.dueDate || '';
+                    dateInp.onchange = () => { item.dueDate = dateInp.value; saveAndSync(data); };
+                    dateWrap.appendChild(dateInp);
 
-                    // 3. Delete (Cross Mark)
+                    // 3. Delete
                     const del = document.createElement('div');
                     del.className = 'control-wrapper delete-btn';
-                    del.title = "Delete Item";
                     del.innerHTML = '<span>❌</span>';
-                    del.onclick = () => { data.splice(i, 1); saveAndSync(data); };
+                    del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); saveAndSync(data); };
 
                     controls.append(memWrap, dateWrap, del);
                     div.append(cb, txt, controls);
