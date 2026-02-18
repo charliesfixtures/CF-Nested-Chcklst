@@ -88,53 +88,63 @@
 
         // --- 4. THE CORE DRAW FUNCTION ---
         function renderChecklist() {
+            console.log("Attempting to fetch data...");
+    
+            // 1. Get the data (default to an empty array [] if nothing exists)
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
+                console.log("Data received:", data);
+        
                 const listDiv = document.getElementById('list');
-                listDiv.innerHTML = ''; // Clear "Loading..."
-                
-                if(!data || data.length === 0) {
-                    listDiv.innerHTML = '<p style="color:#888;">No tasks yet.</p>';
+        
+                // 2. Safety check: if data is null or undefined, make it an empty array
+                if (!data) { data = []; }
+
+                // 3. Clear the "Loading..." text
+                listDiv.innerHTML = ''; 
+        
+                if (data.length === 0) {
+                    listDiv.innerHTML = '<p style="color:#888; font-style: italic; padding: 10px;">No tasks yet. Click "Add Task" to start!</p>';
                 } else {
                     data.forEach((item, i) => {
                         const div = document.createElement('div');
                         div.className = 'item' + (item.isSub ? ' indent' : '');
-                        
+                
                         const cb = document.createElement('input');
                         cb.type = 'checkbox';
-                        cb.checked = item.checked;
+                        cb.checked = item.checked || false;
                         cb.onchange = () => { item.checked = cb.checked; save(data); };
 
                         const txt = document.createElement('input');
                         txt.type = 'text';
-                        txt.value = item.text;
+                        txt.placeholder = "Enter task...";
+                        txt.value = item.text || '';
                         txt.onblur = () => { item.text = txt.value; save(data); };
 
                         div.append(cb, txt);
                         listDiv.appendChild(div);
                     });
                 }
-                // Force Trello to see the height
-                return t.sizeTo('#main-content');
+        
+                // 4. Update the height
+                return t.sizeTo('#main-content').catch(e => {});        
+            })
+            .catch(function(err) {
+                console.error("Error loading checklist:", err);
+                document.getElementById('list').innerHTML = '<p style="color:red;">Error loading data. Try clicking "Connect Trello" again.</p>';
             });
         }
+                document.getElementById('add-main').onclick = () => addItem(false);
+                document.getElementById('add-sub').onclick = () => addItem(true);
 
-        function save(data) {
-            return t.set('card', 'shared', 'checklistData', data)
-            .then(() => renderChecklist());
-        }
-
-        document.getElementById('add-main').onclick = () => addItem(false);
-        document.getElementById('add-sub').onclick = () => addItem(true);
-
-        function addItem(isSub) {
-            t.get('card', 'shared', 'checklistData', [])
-            .then(data => {
-                data.push({ text: 'New Task', checked: false, isSub: isSub });
-                return t.set('card', 'shared', 'checklistData', data);
-            })
-            .then(() => renderChecklist());
-        }
+                function addItem(isSub) {
+                    t.get('card', 'shared', 'checklistData', [])
+                    .then(data => {
+                        data.push({ text: 'New Task', checked: false, isSub: isSub });
+                        return t.set('card', 'shared', 'checklistData', data);
+                    })
+                    .then(() => renderChecklist());
+         }
     </script>
 </body>
 </html>
