@@ -42,8 +42,11 @@
                     document.getElementById('auth-section').classList.remove('hidden');
                     document.getElementById('main-content').classList.add('hidden');
                 } else {
-                    renderChecklist();
-                }
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    
+                    // THIS LINE IS THE FIX: It draws the list immediately
+                    return renderChecklist();                }
             });
         });
 
@@ -53,12 +56,18 @@
             .then(() => { location.reload(); });
         };
 
-        // 3. Render function
+        // 3. Render function - Updated to return the promise
         function renderChecklist() {
-            t.get('card', 'shared', 'checklistData', [])
+            return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
                 const listDiv = document.getElementById('list');
                 listDiv.innerHTML = '';
+                
+                // If there's no data yet, maybe show a friendly message
+                if(data.length === 0) {
+                    listDiv.innerHTML = '<p style="color:#888; font-size:12px;">No tasks yet. Add one below!</p>';
+                }
+
                 data.forEach((item, i) => {
                     const div = document.createElement('div');
                     div.className = 'item' + (item.isSub ? ' indent' : '');
