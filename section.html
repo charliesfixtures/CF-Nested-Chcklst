@@ -95,7 +95,7 @@
         <div id="list"></div>
         <div class="footer">
             <button id="add-main" class="mod-primary">Add Task</button>
-            <button id="add-sub">Add Sub-task</button>
+            <button id="add-sub">Add Sub</button>
         </div>
     </div>
 
@@ -111,6 +111,12 @@
             document.querySelectorAll('.member-menu').forEach(m => m.remove());
         }
 
+        function getAvatarUrl(member) {
+            if (member.avatarUrl) return `${member.avatarUrl}/30.png`;
+            if (member.avatar) return `https://trello-avatars.s3.amazonaws.com/${member.avatar}/30.png`;
+            return null;
+        }
+        
         function formatDate(dateStr) {
             if(!dateStr) return "";
             const d = new Date(dateStr);
@@ -127,7 +133,7 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    return t.board('members').then(function(m){
+                    return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar').then(function(m){
                         boardMembers = m.members;
                         return renderChecklist();
                     });
@@ -181,12 +187,11 @@
                     const assigned = boardMembers.find(m => m.id === item.idMember);
                     
                     if (assigned) {
-                        const avatarSrc = assigned.avatarUrl ? assigned.avatarUrl + '/30.png' : null;
-                        memWrap.innerHTML = avatarSrc ? `<img class="avatar" src="${avatarSrc}">` : `<div class="avatar">${assigned.initials}</div>`;
+                        const avatarUrl = getAvatarUrl(assigned);
+                        memWrap.innerHTML = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${assigned.initials}</div>`;
                     } else {
                         memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
                     }
-
                     memWrap.onclick = (e) => {
                         e.stopPropagation();
                         closeAllMenus();
@@ -202,7 +207,8 @@
                         boardMembers.forEach(m => {
                             const opt = document.createElement('div');
                             opt.className = 'member-option';
-                            const img = m.avatarUrl ? `<img class="avatar" src="${m.avatarUrl}/30.png">` : `<div class="avatar">${m.initials}</div>`;
+                            const avatarUrl = getAvatarUrl(m);
+                            const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
                             opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
                             opt.onclick = () => { item.idMember = m.id; save(data); };
                             menu.appendChild(opt);
