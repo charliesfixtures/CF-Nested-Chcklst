@@ -127,7 +127,8 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    return t.board('members').then(function(m){
+                        return t.board('members', 'id', 'fullName', 'username', 'initials', 'avatar')
+                        .then(function(m){
                         boardMembers = m.members;
                         return renderChecklist();
                     });
@@ -135,6 +136,12 @@
             });
         });
 
+        function getAvatarUrl(member) {
+            if (member.avatarUrl) return `${member.avatarUrl}/30.png`;
+            if (member.avatar) return `https://trello-avatars.s3.amazonaws.com/${member.avatar}/30.png`;
+            return null; 
+        }
+        
         function renderChecklist() {
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
@@ -181,12 +188,18 @@
                     const assigned = boardMembers.find(m => m.id === item.idMember);
                     
                     if (assigned) {
-                        const avatarSrc = assigned.avatarUrl ? assigned.avatarUrl + '/30.png' : null;
-                        memWrap.innerHTML = avatarSrc ? `<img class="avatar" src="${avatarSrc}">` : `<div class="avatar">${assigned.initials}</div>`;
+                        const avatarUrl = getAvatarUrl(assigned); // Use our new helper
+                        if (avatarUrl) {
+                            // If they have a photo, show it!
+                            memWrap.innerHTML = `<img class="avatar" src="${avatarUrl}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">`;
+                        } else {
+                            // If no photo, show the colored circle with initials
+                            memWrap.innerHTML = `<div class="avatar" style="width:22px; height:22px; border-radius:50%; background:#dfe1e6; display:flex; align-items:center; justify-content:center; font-size:10px;">${assigned.initials}</div>`;
+                        }
                     } else {
-                        memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
+                    memWrap.innerHTML = '<span class="star-icon">⭐</span>'; 
                     }
-
+                    
                     memWrap.onclick = (e) => {
                         e.stopPropagation();
                         closeAllMenus();
@@ -195,14 +208,15 @@
                         
                         const noneOpt = document.createElement('div');
                         noneOpt.className = 'member-option';
-                        noneOpt.innerHTML = `<div class="avatar">?</div><span>None</span>`;
+                        noneOpt.innerHTML = <div class="avatar" style="background:#f4f5f7; color:#888;">?</div><span class="member-name">None</span>;
                         noneOpt.onclick = () => { item.idMember = null; save(data); };
                         menu.appendChild(noneOpt);
 
                         boardMembers.forEach(m => {
                             const opt = document.createElement('div');
                             opt.className = 'member-option';
-                            const img = m.avatarUrl ? `<img class="avatar" src="${m.avatarUrl}/30.png">` : `<div class="avatar">${m.initials}</div>`;
+                            const avatarUrl = getAvatarUrl(m); // Use the helper to find the photo
+                            const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
                             opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
                             opt.onclick = () => { item.idMember = m.id; save(data); };
                             menu.appendChild(opt);
