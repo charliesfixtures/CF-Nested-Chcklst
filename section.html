@@ -112,20 +112,23 @@
         }
 
 function getAvatarUrl(member) {
-    // 1. Check if Trello gave us a full, usable URL first
+    // Check if the member object or photo data exists
+    if (!member) return null;
+
+    // 1. Trello's best way to get a URL:
+    // If they have a 'member.avatarUrl', we use that, 
+    // but we guarantee it's the small size.
     if (member.avatarUrl) {
-        // If it's already a full URL, use it (and ensure it's the small size)
-        if (member.avatarUrl.includes('http')) {
-            return member.avatarUrl.replace('/50.png', '/30.png').replace('/170.png', '/30.png');
-        }
-        return member.avatarUrl + '/30.png';
+        // If it already has a size at the end, replace it. 
+        // If not, add it.
+        return member.avatarUrl.replace(/(50|170).png$/, '30.png');
     }
-    
-    // 2. If no direct URL, build it from the avatar hash
+
+    // 2. Fallback to building the URL if we only have the hash
     if (member.avatar) {
         return 'https://trello-avatars.s3.amazonaws.com/' + member.avatar + '/30.png';
     }
-    
+
     return null; // Fallback to initials
 }
         
