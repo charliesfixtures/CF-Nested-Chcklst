@@ -8,10 +8,10 @@
             padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; 
         }
 
-        #main-content { padding-bottom: 50px; } /* Extra space for dropdowns */
+        #main-content { padding-bottom: 60px; } 
 
         .item { 
-            display: flex; align-items: center; padding: 2px 8px; position: relative; min-height: 32px;
+            display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px;
         }
         .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
         .indent { margin-left: 24px; border-left: 2px solid #5e6c84; }
@@ -23,66 +23,66 @@
             color: inherit; font-size: 14px; outline: none; min-width: 0;
         }
 
-        /* Action Bar */
+        /* --- ACTION BAR --- */
         .item-controls {
-            display: flex; align-items: center; opacity: 0; transition: opacity 0.15s;
-            margin-left: 4px; flex-shrink: 0;
+            display: flex; align-items: center; margin-left: 8px; flex-shrink: 0;
         }
-        .item:hover .item-controls { opacity: 1; }
 
+        /* Hide controls only if data is empty; if data exists, show it always */
         .control-wrapper {
-            position: relative; width: 24px; height: 24px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-left: 4px;
+            position: relative; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; margin-left: 6px; min-width: 24px; height: 24px;
         }
+
+        /* Hide specific empty icons until hover */
+        .is-empty { opacity: 0; transition: opacity 0.15s; }
+        .item:hover .is-empty { opacity: 1; }
 
         /* Avatar Styling */
         .avatar {
-            width: 22px; height: 22px; border-radius: 50%;
+            width: 24px; height: 24px; border-radius: 50%;
             background: #dfe1e6; display: flex; align-items: center;
             justify-content: center; font-size: 10px; font-weight: bold;
-            color: #172b4d; overflow: hidden; object-fit: cover; border: 1px solid rgba(0,0,0,0.1);
+            color: #172b4d; overflow: hidden; object-fit: cover;
         }
+
+        /* Date Badge Styling (Like Trello) */
+        .date-badge {
+            font-size: 12px; padding: 2px 6px; border-radius: 3px;
+            background: rgba(255,255,255,0.15); display: flex; align-items: center; gap: 4px;
+        }
+        .date-badge:hover { background: rgba(255,255,255,0.25); }
 
         /* Member Picker Dropdown */
         .member-menu {
-            position: absolute; top: 28px; right: 0; z-index: 1000;
+            position: absolute; top: 30px; right: 0; z-index: 1000;
             background: #ffffff; border-radius: 3px; 
             box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
-            width: 200px; padding: 4px 0; color: #172b4d;
+            width: 220px; padding: 4px 0; color: #172b4d;
         }
         .member-option {
             display: flex; align-items: center; padding: 8px 12px; cursor: pointer;
         }
         .member-option:hover { background: #f4f5f7; }
         .member-option .avatar { margin-right: 10px; flex-shrink: 0; }
-        .member-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Icon styling */
-        .star-icon { color: #f2d600; font-size: 16px; }
-        .date-icon { font-size: 16px; }
-
-        /* Hidden Date Input stacked over icon */
+        /* Hidden Date Overlay */
         .date-input-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer; z-index: 2;
         }
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
-            margin: 0; padding: 0; cursor: pointer;
-        }
 
-        .delete-btn { font-size: 16px; opacity: 0.7; }
-        .delete-btn:hover { opacity: 1; }
+        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; }
+        .item:hover .delete-btn { opacity: 0.6; }
+        .delete-btn:hover { opacity: 1; color: #eb5a46; }
 
-        .footer { padding: 8px; display: flex; gap: 8px; }
+        .footer { padding: 12px 8px; display: flex; gap: 8px; }
         .hidden { display: none !important; }
         
         button { 
             background: rgba(255,255,255,0.1); border: none; color: inherit; 
             padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px;
         }
-        button:hover { background: rgba(255,255,255,0.2); }
         .mod-primary { background: #0079bf; color: white; }
     </style>
 </head>
@@ -101,7 +101,7 @@
 
     <script>
         var t = TrelloPowerUp.iframe({
-          appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
+          appKey: 'YOUR_API_KEY_HERE',
           appName: 'Process Checklist'
         });
 
@@ -109,6 +109,12 @@
 
         function closeAllMenus() {
             document.querySelectorAll('.member-menu').forEach(m => m.remove());
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return "";
+            const d = new Date(dateStr);
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
 
         t.render(function(){
@@ -142,27 +148,43 @@
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
                     cb.checked = item.checked || false;
-                    cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
+                    cb.onchange = () => { item.checked = cb.checked; save(data); };
 
                     const txt = document.createElement('input');
                     txt.className = 'task-input';
                     txt.value = item.text || '';
                     txt.placeholder = "Add an item...";
-                    txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
+                    txt.onblur = () => { item.text = txt.value; save(data); };
 
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // 1. Member Picker (Avatar or Star)
+                    // 1. DATE PICKER (Now on the Left)
+                    const dateWrap = document.createElement('div');
+                    dateWrap.className = 'control-wrapper' + (item.dueDate ? '' : ' is-empty');
+                    
+                    const dateDisplay = item.dueDate ? 
+                        `<div class="date-badge">📅 ${formatDate(item.dueDate)}</div>` : 
+                        `<span>📅</span>`;
+                    dateWrap.innerHTML = dateDisplay;
+
+                    const dateInp = document.createElement('input');
+                    dateInp.type = 'date';
+                    dateInp.className = 'date-input-overlay';
+                    dateInp.value = item.dueDate || '';
+                    dateInp.onchange = () => { item.dueDate = dateInp.value; save(data); };
+                    dateWrap.appendChild(dateInp);
+
+                    // 2. MEMBER PICKER (Now on the Right)
                     const memWrap = document.createElement('div');
-                    memWrap.className = 'control-wrapper';
+                    memWrap.className = 'control-wrapper' + (item.idMember ? '' : ' is-empty');
                     const assigned = boardMembers.find(m => m.id === item.idMember);
                     
                     if (assigned) {
                         const avatarSrc = assigned.avatarUrl ? assigned.avatarUrl + '/30.png' : null;
                         memWrap.innerHTML = avatarSrc ? `<img class="avatar" src="${avatarSrc}">` : `<div class="avatar">${assigned.initials}</div>`;
                     } else {
-                        memWrap.innerHTML = '<span class="star-icon">⭐</span>'; 
+                        memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
                     }
 
                     memWrap.onclick = (e) => {
@@ -171,11 +193,10 @@
                         const menu = document.createElement('div');
                         menu.className = 'member-menu';
                         
-                        // "None" option
                         const noneOpt = document.createElement('div');
                         noneOpt.className = 'member-option';
-                        noneOpt.innerHTML = `<div class="avatar">?</div><span class="member-name">None</span>`;
-                        noneOpt.onclick = () => { item.idMember = null; saveAndSync(data); };
+                        noneOpt.innerHTML = `<div class="avatar">?</div><span>None</span>`;
+                        noneOpt.onclick = () => { item.idMember = null; save(data); };
                         menu.appendChild(noneOpt);
 
                         boardMembers.forEach(m => {
@@ -183,31 +204,20 @@
                             opt.className = 'member-option';
                             const img = m.avatarUrl ? `<img class="avatar" src="${m.avatarUrl}/30.png">` : `<div class="avatar">${m.initials}</div>`;
                             opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
-                            opt.onclick = () => { item.idMember = m.id; saveAndSync(data); };
+                            opt.onclick = () => { item.idMember = m.id; save(data); };
                             menu.appendChild(opt);
                         });
                         memWrap.appendChild(menu);
                     };
 
-                    // 2. Date Picker
-                    const dateWrap = document.createElement('div');
-                    dateWrap.className = 'control-wrapper';
-                    dateWrap.innerHTML = '<span class="date-icon">📅</span>';
-                    const dateInp = document.createElement('input');
-                    dateInp.type = 'date';
-                    dateInp.className = 'date-input-overlay';
-                    dateInp.value = item.dueDate || '';
-                    dateInp.onchange = () => { item.dueDate = dateInp.value; saveAndSync(data); };
-                    dateWrap.appendChild(dateInp);
-
-                    // 3. Delete
+                    // 3. DELETE
                     const del = document.createElement('div');
-                    del.className = 'control-wrapper delete-btn';
-                    del.innerHTML = '<span>❌</span>';
-                    del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); saveAndSync(data); };
+                    del.className = 'delete-btn';
+                    del.innerHTML = '❌';
+                    del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); save(data); };
 
-                    controls.append(memWrap, dateWrap, del);
-                    div.append(cb, txt, controls);
+                    controls.append(dateWrap, memWrap);
+                    div.append(cb, txt, controls, del);
                     listDiv.appendChild(div);
                 });
                 
@@ -215,7 +225,7 @@
             });
         }
 
-        async function saveAndSync(data) {
+        async function save(data) {
             await t.set('card', 'shared', 'checklistData', data);
             renderChecklist(); 
         }
