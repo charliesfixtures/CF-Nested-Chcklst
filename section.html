@@ -73,6 +73,7 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
+                    t.sizeTo(250).catch(function(e){}); 
                     return renderChecklist();
                 }
             })
