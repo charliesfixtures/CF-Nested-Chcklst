@@ -3,59 +3,26 @@
 <head>
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-<style>
-    body { 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Droid Sans", "Helvetica Neue", sans-serif;
-        padding: 10px; 
-        margin: 0; 
-        overflow: hidden; /* Prevents double scrollbars */
-    }
-
-    /* THIS IS THE MISSING PIECE */
-    #main-content {
-        min-height: 100px; /* Gives it a "floor" so it never collapses to 0px */
-        width: 100%;
-        display: block;
-    }
-
-    .item { margin: 8px 0; display: flex; align-items: center; }
-    .indent { margin-left: 25px; border-left: 2px solid #dfe1e6; padding-left: 10px; }
-    
-    input[type="checkbox"] { cursor: pointer; transform: scale(1.1); margin-right: 10px; }
-    
-    input[type="text"] { 
-        border: 1px solid transparent; 
-        background: transparent; 
-        width: 100%; 
-        padding: 4px; 
-        font-size: 14px;
-    }
-    
-    input[type="text"]:focus { 
-        background: #fff; 
-        border: 1px solid #0079bf; 
-        outline: none; 
-        border-radius: 3px; 
-        box-shadow: inset 0 0 0 1px #0079bf;
-    }
-
-    .hidden { display: none !important; }
-    
-    .footer { 
-        margin-top: 15px; 
-        padding-top: 10px; 
-        border-top: 1px solid #eee; 
-    }
-</style>
+    <style>
+        body { font-family: sans-serif; padding: 10px; margin: 0; background: #f4f5f7; }
+        #main-content { min-height: 150px; display: block; width: 100%; }
+        .item { margin: 8px 0; display: flex; align-items: center; }
+        .indent { margin-left: 25px; border-left: 2px solid #dfe1e6; padding-left: 10px; }
+        input[type="checkbox"] { cursor: pointer; margin-right: 10px; }
+        input[type="text"] { border: 1px solid transparent; background: transparent; width: 100%; padding: 4px; }
+        input[type="text"]:focus { background: #fff; border: 1px solid #0079bf; outline: none; border-radius: 3px; }
+        .footer { margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
     <div id="auth-section" class="hidden">
-        <p>Connect to Trello to enable Checklist Syncing.</p>
-        <button id="auth-btn" class="mod-primary">Authorize Power-Up</button>
+        <p>Authorization required to sync checklist.</p>
+        <button id="auth-btn" class="mod-primary">Connect Trello</button>
     </div>
 
     <div id="main-content">
-        <div id="list"></div>
+        <div id="list">Loading Checklist...</div>
         <div class="footer">
             <button id="add-main" class="mod-primary">Add Task</button>
             <button id="add-sub">Add Sub-task</button>
@@ -65,112 +32,68 @@
     <script>
         var t = TrelloPowerUp.iframe();
         
-        // PASTE YOUR API KEY BELOW
+        // --- 1. SET YOUR KEY HERE ---
         var MY_API_KEY = '8a3d78ec37dd6c8669e2f2f997f2e96e'; 
 
-        // 1. Initial Render - This runs every time the card is opened
+        // --- 2. THE RENDER ENGINE ---
         t.render(function(){
             return t.getRestApi().isAuthorized()
             .then(function(authorized) {
                 if (!authorized) {
                     document.getElementById('auth-section').classList.remove('hidden');
                     document.getElementById('main-content').classList.add('hidden');
-                    // Tell Trello to show the auth button (approx 100px)
-                    return t.sizeTo(100); 
+                    t.sizeTo(120);
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    
-                    // Render the list and THEN calculate size
-                    return renderChecklist().then(function() {
-                        // After drawing everything, force Trello to look at the height again
-                        return t.sizeTo('#main-content');
-                    });
+                    return renderChecklist();
                 }
             })
-            .catch(function(err) {
-                // If anything fails, at least show a minimum height so it's not invisible
-                t.sizeTo(150);
-            });
+            .catch(function(){ t.sizeTo(150); });
         });
 
-        // 2. Authorization Handler
+        // --- 3. AUTH BUTTON ---
         document.getElementById('auth-btn').onclick = function() {
             t.getRestApi().authorize({ scope: 'read,write' })
             .then(() => { location.reload(); });
         };
 
-        // 3. Render function - Updated to make sure it returns the "promise"
+        // --- 4. THE CORE DRAW FUNCTION ---
         function renderChecklist() {
-            // WE MUST 'RETURN' this so the code above knows when it's done loading
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
                 const listDiv = document.getElementById('list');
-                listDiv.innerHTML = '';
+                listDiv.innerHTML = ''; // Clear "Loading..."
                 
-                if(data.length === 0) {
-                    listDiv.innerHTML = '<p style="color:#888; font-size:12px;">No tasks yet. Add one below!</p>';
+                if(!data || data.length === 0) {
+                    listDiv.innerHTML = '<p style="color:#888;">No tasks yet.</p>';
+                } else {
+                    data.forEach((item, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'item' + (item.isSub ? ' indent' : '');
+                        
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.checked = item.checked;
+                        cb.onchange = () => { item.checked = cb.checked; save(data); };
+
+                        const txt = document.createElement('input');
+                        txt.type = 'text';
+                        txt.value = item.text;
+                        txt.onblur = () => { item.text = txt.value; save(data); };
+
+                        div.append(cb, txt);
+                        listDiv.appendChild(div);
+                    });
                 }
-
-                data.forEach((item, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'item' + (item.isSub ? ' indent' : '');
-                    
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.checked = item.checked;
-                    cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
-
-                    const txt = document.createElement('input');
-                    txt.type = 'text';
-                    txt.value = item.text;
-                    txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
-
-                    div.append(cb, txt);
-                    listDiv.appendChild(div);
-                });
-
-                // Final nudge to Trello to fix the height
+                // Force Trello to see the height
                 return t.sizeTo('#main-content');
             });
         }
 
-                data.forEach((item, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'item' + (item.isSub ? ' indent' : '');
-                    
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.checked = item.checked;
-                    cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
-
-                    const txt = document.createElement('input');
-                    txt.type = 'text';
-                    txt.value = item.text;
-                    txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
-
-                    div.append(cb, txt);
-                    listDiv.appendChild(div);
-                });
-            });
-        }
-
-        // 4. Save & Sync Logic
-        function saveAndSync(data) {
+        function save(data) {
             return t.set('card', 'shared', 'checklistData', data)
-            .then(function() {
-                // This updates the hidden progress for Butler automation
-                const total = data.length;
-                const done = data.filter(i => i.checked).length;
-                const percent = total > 0 ? Math.floor((done/total)*100) : 0;
-                
-                // We use a comment as a "pulse" for Trello Automation
-                if (percent === 100 && total > 0) {
-                    t.comment({ text: "All nested tasks complete! 🎯" });
-                }
-                
-                return t.set('card', 'shared', 'progress', percent);
-            });
+            .then(() => renderChecklist());
         }
 
         document.getElementById('add-main').onclick = () => addItem(false);
@@ -180,8 +103,9 @@
             t.get('card', 'shared', 'checklistData', [])
             .then(data => {
                 data.push({ text: 'New Task', checked: false, isSub: isSub });
-                saveAndSync(data).then(renderChecklist);
-            });
+                return t.set('card', 'shared', 'checklistData', data);
+            })
+            .then(() => renderChecklist());
         }
     </script>
 </body>
