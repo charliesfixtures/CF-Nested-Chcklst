@@ -111,11 +111,23 @@
             document.querySelectorAll('.member-menu').forEach(m => m.remove());
         }
 
-        function getAvatarUrl(member) {
-            if (member.avatarUrl) return `${member.avatarUrl}/30.png`;
-            if (member.avatar) return `https://trello-avatars.s3.amazonaws.com/${member.avatar}/30.png`;
-            return null;
+function getAvatarUrl(member) {
+    // 1. Check if Trello gave us a full, usable URL first
+    if (member.avatarUrl) {
+        // If it's already a full URL, use it (and ensure it's the small size)
+        if (member.avatarUrl.includes('http')) {
+            return member.avatarUrl.replace('/50.png', '/30.png').replace('/170.png', '/30.png');
         }
+        return member.avatarUrl + '/30.png';
+    }
+    
+    // 2. If no direct URL, build it from the avatar hash
+    if (member.avatar) {
+        return 'https://trello-avatars.s3.amazonaws.com/' + member.avatar + '/30.png';
+    }
+    
+    return null; // Fallback to initials
+}
         
         function formatDate(dateStr) {
             if(!dateStr) return "";
