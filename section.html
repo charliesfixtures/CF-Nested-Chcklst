@@ -2,89 +2,66 @@
 <html>
 <head>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <style>
-        /* 1. Remove scroll and match native Trello feel */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif;
-            padding: 0; 
-            margin: 0; 
-            background: transparent; 
-            color: inherit;
-            overflow: hidden; /* Removes the scrollbar */
-        }
+<style>
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif;
+        padding: 0; margin: 0; background: transparent; color: inherit; overflow: hidden; 
+    }
 
-        #main-content { width: 100%; display: block; padding-bottom: 8px; }
+    #list { padding-top: 4px; }
 
-        /* 2. Checklist Item Styling */
-        .item { 
-            margin: 0; 
-            display: flex; 
-            align-items: center; 
-            padding: 4px 8px;
-            position: relative;
-            group: hover;
-        }
-        
-        .item:hover { background: rgba(255,255,255,0.05); border-radius: 3px; }
+    .item { 
+        display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px;
+    }
+    
+    .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
 
-        .indent { margin-left: 28px; border-left: 2px solid #5e6c84; }
+    .indent { margin-left: 24px; border-left: 2px solid #5e6c84; }
 
-        input[type="checkbox"] { 
-            cursor: pointer; 
-            margin-right: 12px; 
-            width: 16px;
-            height: 16px;
-        }
+    input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; }
 
-        /* 3. Match Native Font Size (14px) and Remove Borders */
-        input[type="text"] { 
-            border: none; 
-            background: transparent; 
-            width: 100%; 
-            padding: 4px 0; 
-            color: inherit; 
-            font-size: 14px; /* Native size */
-            line-height: 20px;
-            outline: none;
-        }
-        
-        input[type="text"]:focus { 
-            background: rgba(255,255,255,0.1);
-            box-shadow: inset 0 0 0 2px #0079bf;
-            border-radius: 3px;
-            padding-left: 4px;
-        }
+    /* The task text */
+    .task-input { 
+        border: none; background: transparent; flex: 1; padding: 4px 0; 
+        color: inherit; font-size: 14px; outline: none;
+    }
 
-        /* 4. Delete Button (Hidden until hover) */
-        .delete-btn {
-            display: none;
-            color: #888;
-            cursor: pointer;
-            padding: 0 8px;
-            font-size: 18px;
-            font-weight: bold;
-        }
+    /* Controls Container (Date & User) */
+    .item-controls {
+        display: flex; align-items: center; opacity: 0.3; transition: opacity 0.2s;
+    }
+    
+    .item:hover .item-controls { opacity: 1; }
 
-        .item:hover .delete-btn { display: block; }
-        .delete-btn:hover { color: #eb5a46; }
+    /* Styling the pickers to look like icons/badges */
+    .control-wrapper {
+        display: flex; align-items: center; margin-left: 8px;
+        background: rgba(255,255,255,0.1); border-radius: 3px; padding: 2px 4px;
+    }
 
-        .footer { margin-top: 8px; padding: 8px; }
-        .hidden { display: none !important; }
-        
-        button { 
-            background: rgba(255,255,255,0.1); 
-            border: none; 
-            color: inherit; 
-            padding: 6px 12px; 
-            border-radius: 3px; 
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover { background: rgba(255,255,255,0.2); }
-        .mod-primary { background: #0079bf; color: white; }
-        .mod-primary:hover { background: #005a8f; }
-    </style>
+    select, input[type="date"] {
+        border: none; background: transparent; color: inherit; font-size: 11px;
+        cursor: pointer; outline: none; max-width: 80px;
+    }
+
+    /* Hide the delete button unless hovering */
+    .delete-btn {
+        margin-left: 8px; color: #888; cursor: pointer; font-size: 18px;
+        visibility: hidden; padding: 0 4px;
+    }
+    .item:hover .delete-btn { visibility: visible; }
+    .delete-btn:hover { color: #eb5a46; }
+
+    .footer { padding: 12px 8px; }
+    button { 
+        background: rgba(255,255,255,0.1); border: none; color: inherit; 
+        padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px;
+    }
+    button:hover { background: rgba(255,255,255,0.2); }
+    .mod-primary { background: #0079bf; color: white; margin-right: 8px; }
+</style>
 </head>
+    
 <body>
     <div id="auth-section" class="hidden">
         <button id="auth-btn" class="mod-primary">Connect Trello</button>
@@ -133,53 +110,63 @@
             const listDiv = document.getElementById('list');
             listDiv.innerHTML = '';
             
-            data.forEach((item, i) => {
-                const div = document.createElement('div');
-                div.className = 'item' + (item.isSub ? ' indent' : '');
-                
-                // 1. Checkbox
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.checked = item.checked || false;
-                cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
+data.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'item' + (item.isSub ? ' indent' : '');
+    
+    // Checkbox
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = item.checked || false;
+    cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
 
-                // 2. Task Text
-                const txt = document.createElement('input');
-                txt.type = 'text';
-                txt.value = item.text || '';
-                txt.style.flex = "1";
-                txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
+    // Text Input
+    const txt = document.createElement('input');
+    txt.className = 'task-input';
+    txt.value = item.text || '';
+    txt.placeholder = "Add an item...";
+    txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
 
-                // 3. Member Dropdown (Automation Friendly)
-                const sel = document.createElement('select');
-                sel.style.width = "80px";
-                sel.style.fontSize = "11px";
-                sel.innerHTML = '<option value="">User</option>';
-                boardMembers.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m.id;
-                    opt.text = m.initials || m.fullName;
-                    if(item.idMember === m.id) opt.selected = true;
-                    sel.appendChild(opt);
-                });
-                sel.onchange = () => { item.idMember = sel.value; saveAndSync(data); };
+    // Wrapper for Date & Member (the part that fades in)
+    const controls = document.createElement('div');
+    controls.className = 'item-controls';
 
-                // 4. Date Picker (Automation Friendly)
-                const date = document.createElement('input');
-                date.type = 'date';
-                date.value = item.dueDate || '';
-                date.style.width = "110px";
-                date.onchange = () => { item.dueDate = date.value; saveAndSync(data); };
+    // Member Selector
+    const memWrap = document.createElement('div');
+    memWrap.className = 'control-wrapper';
+    memWrap.innerHTML = '<span style="margin-right:4px">👤</span>'; // Simple icon
+    const sel = document.createElement('select');
+    sel.innerHTML = '<option value="">Assign</option>';
+    boardMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.text = m.initials || m.fullName;
+        if(item.idMember === m.id) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    sel.onchange = () => { item.idMember = sel.value; saveAndSync(data); };
+    memWrap.appendChild(sel);
 
-                // 5. Delete
-                const del = document.createElement('span');
-                del.className = 'delete-btn';
-                del.innerHTML = '&times;';
-                del.onclick = () => { data.splice(i, 1); saveAndSync(data); };
+    // Date Picker
+    const dateWrap = document.createElement('div');
+    dateWrap.className = 'control-wrapper';
+    dateWrap.innerHTML = '<span style="margin-right:4px">🕒</span>'; // Simple icon
+    const date = document.createElement('input');
+    date.type = 'date';
+    date.value = item.dueDate || '';
+    date.onchange = () => { item.dueDate = date.value; saveAndSync(data); };
+    dateWrap.appendChild(date);
 
-                div.append(cb, txt, sel, date, del);
-                listDiv.appendChild(div);
-            });
+    // Delete
+    const del = document.createElement('span');
+    del.className = 'delete-btn';
+    del.innerHTML = '&times;';
+    del.onclick = () => { data.splice(i, 1); saveAndSync(data); };
+
+    controls.append(memWrap, dateWrap);
+    div.append(cb, txt, controls, del);
+    listDiv.appendChild(div);
+});
             return t.sizeTo('#main-content').catch(e => {});
         });
     }
