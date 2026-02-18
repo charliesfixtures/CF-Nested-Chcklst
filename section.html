@@ -34,19 +34,29 @@
         // PASTE YOUR API KEY BELOW
         var MY_API_KEY = '8a3d78ec37dd6c8669e2f2f997f2e96e'; 
 
-        // 1. Initial Render
+        // 1. Initial Render - This runs every time the card is opened
         t.render(function(){
             return t.getRestApi().isAuthorized()
             .then(function(authorized) {
                 if (!authorized) {
                     document.getElementById('auth-section').classList.remove('hidden');
                     document.getElementById('main-content').classList.add('hidden');
+                    // Tell Trello to show the auth button (approx 100px)
+                    return t.sizeTo(100); 
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
                     
-                    // THIS LINE IS THE FIX: It draws the list immediately
-                    return renderChecklist();                }
+                    // Render the list and THEN calculate size
+                    return renderChecklist().then(function() {
+                        // After drawing everything, force Trello to look at the height again
+                        return t.sizeTo('#main-content');
+                    });
+                }
+            })
+            .catch(function(err) {
+                // If anything fails, at least show a minimum height so it's not invisible
+                t.sizeTo(150);
             });
         });
 
@@ -56,23 +66,38 @@
             .then(() => { location.reload(); });
         };
 
-        // 3. Render function - Updated to return the promise
+        // 3. Render function - Updated to make sure it returns the "promise"
         function renderChecklist() {
+            // WE MUST 'RETURN' this so the code above knows when it's done loading
             return t.get('card', 'shared', 'checklistData', [])
             .then(function(data){
                 const listDiv = document.getElementById('list');
                 listDiv.innerHTML = '';
                 
-                // If there's no data yet, maybe show a friendly message
+                if(data.length === 0) {
+                    listDiv.innerHTML = '<p style="color:#888; font-size:12px;">No tasks yet. Add one below!</p>';
+                }
+
                 data.forEach((item, i) => {
-                // ... (your code for items) ...
+                    const div = document.createElement('div');
+                    div.className = 'item' + (item.isSub ? ' indent' : '');
+                    
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = item.checked;
+                    cb.onchange = () => { item.checked = cb.checked; saveAndSync(data); };
+
+                    const txt = document.createElement('input');
+                    txt.type = 'text';
+                    txt.value = item.text;
+                    txt.onblur = () => { item.text = txt.value; saveAndSync(data); };
+
+                    div.append(cb, txt);
+                    listDiv.appendChild(div);
                 });
 
-                // 1. Tell Trello to calculate the height based on the "main-content" div
-                // 2. We wrap it in a setTimeout to give the browser a millisecond to finish drawing
-                setTimeout(function() {
-                    t.sizeTo('#main-content').catch(function(e){ });
-                }, 10);
+                // Final nudge to Trello to fix the height
+                return t.sizeTo('#main-content');
             });
         }
 
