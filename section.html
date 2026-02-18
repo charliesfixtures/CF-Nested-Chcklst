@@ -212,15 +212,17 @@
                         noneOpt.onclick = () => { item.idMember = null; save(data); };
                         menu.appendChild(noneOpt);
 
-                        boardMembers.forEach(m => {
-                            const opt = document.createElement('div');
-                            opt.className = 'member-option';
-                            const avatarUrl = getAvatarUrl(m); // Use the helper to find the photo
-                            const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
-                            opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
-                            opt.onclick = () => { item.idMember = m.id; save(data); };
-                            menu.appendChild(opt);
-                        });
+                       boardMembers.forEach(m => {
+    const opt = document.createElement('div');
+    opt.className = 'member-option';
+    // --- LOOK HERE ---
+    const avatarUrl = getAvatarUrl(m); 
+    const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
+    opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
+    // --- LOOK HERE ---
+    opt.onclick = () => { item.idMember = m.id; save(data); };
+    menu.appendChild(opt);
+});
                         memWrap.appendChild(menu);
                     };
 
