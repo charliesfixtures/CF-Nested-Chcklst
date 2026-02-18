@@ -3,16 +3,50 @@
 <head>
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 10px; }
-        .item { margin: 8px 0; display: flex; align-items: center; }
-        .indent { margin-left: 25px; border-left: 2px solid #edeff0; padding-left: 10px; }
-        input[type="checkbox"] { cursor: pointer; transform: scale(1.1); margin-right: 10px; }
-        input[type="text"] { border: 1px solid transparent; background: transparent; width: 100%; padding: 4px; }
-        input[type="text"]:focus { background: #fff; border: 1px solid #0079bf; outline: none; border-radius: 3px; }
-        .hidden { display: none; }
-        .footer { margin-top: 15px; pt: 10px; border-top: 1px solid #eee; }
-    </style>
+<style>
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Droid Sans", "Helvetica Neue", sans-serif;
+        padding: 10px; 
+        margin: 0; 
+        overflow: hidden; /* Prevents double scrollbars */
+    }
+
+    /* THIS IS THE MISSING PIECE */
+    #main-content {
+        min-height: 100px; /* Gives it a "floor" so it never collapses to 0px */
+        width: 100%;
+        display: block;
+    }
+
+    .item { margin: 8px 0; display: flex; align-items: center; }
+    .indent { margin-left: 25px; border-left: 2px solid #dfe1e6; padding-left: 10px; }
+    
+    input[type="checkbox"] { cursor: pointer; transform: scale(1.1); margin-right: 10px; }
+    
+    input[type="text"] { 
+        border: 1px solid transparent; 
+        background: transparent; 
+        width: 100%; 
+        padding: 4px; 
+        font-size: 14px;
+    }
+    
+    input[type="text"]:focus { 
+        background: #fff; 
+        border: 1px solid #0079bf; 
+        outline: none; 
+        border-radius: 3px; 
+        box-shadow: inset 0 0 0 1px #0079bf;
+    }
+
+    .hidden { display: none !important; }
+    
+    .footer { 
+        margin-top: 15px; 
+        padding-top: 10px; 
+        border-top: 1px solid #eee; 
+    }
+</style>
 </head>
 <body>
     <div id="auth-section" class="hidden">
