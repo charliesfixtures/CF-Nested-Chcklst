@@ -14,17 +14,20 @@
 </head>
 <body>
     <div id="auth-section" class="hidden" style="text-align:center; padding:20px;">
-        <button id="auth-btn" class="mod-primary">Authorize Employee List</button>
+        <button id="auth-btn" class="mod-primary">Authorize Attendance 2026</button>
     </div>
 
     <div id="main-content" class="hidden">
-        <div id="attendance-list">Loading employees from Registry...</div>
+        <div id="attendance-list">Loading Employees...</div>
     </div>
 
     <script>
-        var t = TrelloPowerUp.iframe();
+        // THIS WAS THE ERROR: We must pass the key and name here!
+        var t = TrelloPowerUp.iframe({
+            appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
+            appName: 'Attendance 2026'
+        });
 
-        // These are your specific IDs
         var REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
         var TARGET_LIST_NAME = "2026 Employee";
 
@@ -46,13 +49,12 @@
         function fetchRegistryEmployees() {
             var listDiv = document.getElementById('attendance-list');
 
-            // We specifically ask for the Registry Board cards
             return t.getRestApi().get('/boards/' + REGISTRY_BOARD_ID + '/lists', { cards: 'open' })
             .then(function(lists) {
                 var masterList = lists.find(function(l) { return l.name === TARGET_LIST_NAME; });
                 
                 if (!masterList) {
-                    listDiv.innerHTML = 'Error: List "' + TARGET_LIST_NAME + '" not found on Registry board.';
+                    listDiv.innerHTML = 'List "' + TARGET_LIST_NAME + '" not found.';
                     return;
                 }
 
@@ -73,8 +75,7 @@
                 t.sizeTo('body');
             })
             .catch(function(err) {
-                listDiv.innerHTML = 'Error connecting to Registry. Please ensure you are a member of both boards.';
-                console.error(err);
+                listDiv.innerHTML = 'Error syncing. Check Registry Board access.';
             });
         }
 
@@ -84,7 +85,7 @@
                 text: 'Logged: ' + status + ' on ' + date
             })
             .then(function() {
-                t.alert({ message: 'Logged ' + status, display: 'success' });
+                t.alert({ message: 'Success: ' + status, display: 'success' });
             });
         }
 
