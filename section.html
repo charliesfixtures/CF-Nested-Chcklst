@@ -18,43 +18,41 @@
     </style>
 </head>
 <body>
-    <div id="main-view">
-        <div id="list-container" class="loading">Initializing Connection...</div>
-    </div>
+    <div id="list-container" class="loading">Loading...</div>
 
     <script>
-        var t = TrelloPowerUp.iframe({
-            appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
-            appName: 'Daily Attendance'
-        });
+        var t = TrelloPowerUp.iframe();
 
         const REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
         const TARGET_LIST_NAME = "2026 Employee";
 
         t.render(function() {
+            // First check authorization
             return t.getRestApi().isAuthorized()
                 .then(function(isAuth) {
                     if (!isAuth) {
                         showAuthButton();
                     } else {
+                        // Authorized! Now we can safely use restApi
                         loadRegistryData();
                     }
                 })
                 .catch(err => {
-                    document.getElementById('list-container').innerHTML = `<div class="error-msg">Auth Error: ${err.message}</div>`;
+                    document.getElementById('list-container').innerHTML = `<div class="error-msg">Auth check failed: ${err.message}</div>`;
                 });
         });
 
         function loadRegistryData() {
             const container = document.getElementById('list-container');
+            container.innerHTML = '<div class="loading">Syncing with Registry...</div>';
             
-            // Step 1: Get all lists from the registry board
+            // This is the call that was failing
             t.restApi('GET', `/boards/${REGISTRY_BOARD_ID}/lists?cards=open&card_fields=name,id`)
                 .then(function(lists) {
                     const masterList = lists.find(l => l.name === TARGET_LIST_NAME);
                     
                     if (!masterList) {
-                        container.innerHTML = `<div class="error-msg">List "${TARGET_LIST_NAME}" not found on Registry Board. Check the list name!</div>`;
+                        container.innerHTML = `<div class="error-msg">List "${TARGET_LIST_NAME}" not found on Registry Board.</div>`;
                         return;
                     }
 
@@ -67,7 +65,7 @@
                 })
                 .catch(function(err) {
                     console.error("API Error:", err);
-                    container.innerHTML = `<div class="error-msg">Cannot access Registry Board. Ensure you are a member of that board and have authorized the Power-Up.</div>`;
+                    container.innerHTML = `<div class="error-msg">Cannot access Registry Board. Ensure authorized.</div>`;
                 });
         }
 
@@ -101,7 +99,7 @@
             })
             .then(() => {
                 document.getElementById(`card-${cardId}`).classList.add('is-logged');
-                t.alert({ message: `Logged ${status} for employee`, display: 'success' });
+                t.alert({ message: `Logged ${status}`, display: 'success' });
             })
             .catch(err => t.alert({ message: "Logging failed", display: 'error' }));
         }
@@ -110,11 +108,11 @@
             document.getElementById('list-container').innerHTML = `
                 <div style="text-align:center; padding:20px;">
                     <p>Authorization required to sync boards.</p>
-                    <button id="auth-btn" style="background:#0079bf; color:white; border:none; padding:8px 16px; border-radius:3px; cursor:pointer;">Authorize Power-Up</button>
+                    <button id="auth-btn" style="background:#0079bf; color:white; border:none; padding:8px 16px; border-radius:3px; cursor:pointer;">Authorize</button>
                 </div>
             `;
             document.getElementById('auth-btn').addEventListener('click', function() {
-                t.getRestApi().authorize({ scope: 'read,write,account' })
+                t.getRestApi().authorize({ scope: 'read,write' })
                     .then(() => location.reload());
             });
             t.sizeTo('body');
