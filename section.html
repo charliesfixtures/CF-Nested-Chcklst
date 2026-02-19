@@ -50,19 +50,18 @@
     </div>
 
     <script>
-        var t = TrelloPowerUp.iframe({
+var t = TrelloPowerUp.iframe({
             appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
-            appName: 'Process Checklist'
+            appName: 'CF Nested Checklist'
         });
 
-        const key = '8a3d78ec37dd6c8669e2f2f997f2e96e';
+        // --- CONFIGURATION (Only declare these ONCE) ---
         const CHECKLIST_NAME = "Tasks";
-        const _s = ['6996', '526f', '2424', 'ecd5', 'c7a1', 'bda9'].join('');
-        const MIRROR_BOARD_ID = _s;
+        const key = '8a3d78ec37dd6c8669e2f2f997f2e96e'; 
+        const MIRROR_BOARD_ID = '6996526f2424ecd5c7a1bda9';
         const MIRROR_LIST_NAME = 'To Do';
         const DONE_LIST_NAME = 'Done';
-        const _k = ['8a3d78e', 'c37dd6c', '8669e2f', '2f997f', '2e96e'].join('');
-        const key = _k;
+        // -----------------------------------------------
 
         var boardMembers = [];
 
@@ -91,21 +90,20 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    // Get members once on load
                     return t.board('members').then(board => {
                         boardMembers = board.members || [];
                         renderChecklist();
                     });
                 }
-            }).catch(err => {
-                console.error("Auth Error:", err);
-            });
+            }).catch(err => { console.error("Auth Error:", err); });
         });
 
         async function renderChecklist() {
             try {
                 const card = await t.card('id');
                 const token = await t.getRestApi().getToken();
+                
+                // Note: 'key' is used here but NOT re-declared with 'const'
                 const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
                 const mainList = checklists.find(c => c.name === CHECKLIST_NAME);
                 
@@ -153,6 +151,7 @@
                     memWrap.innerHTML = assigned ? `<div class="avatar">${assigned.initials}</div>` : '👤';
                     memWrap.onclick = (e) => {
                         e.stopPropagation();
+                        closeAllMenus();
                         const menu = document.createElement('div');
                         menu.className = 'member-menu';
                         boardMembers.forEach(m => {
