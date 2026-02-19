@@ -117,200 +117,242 @@
     </div>
 
     <script>
-        var t = TrelloPowerUp.iframe({
-          appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
-          appName: 'Process Checklist'
+var t = TrelloPowerUp.iframe({
+            appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
+            appName: 'Process Checklist'
         });
 
+        // --- CONFIGURATION ---
+        const CHECKLIST_NAME = "Tasks";
+        const MIRROR_BOARD_ID = '6996526f2424ecd5c7a1bda9'; // <--- PUT YOUR BOARD ID HERE
+        const MIRROR_LIST_NAME = 'To Do'; // The list to create new cards in
+        const DONE_LIST_NAME = 'Done'; // The list to move cards to when checked
+        // ---------------------
+
         var boardMembers = [];
+        const key = '8a3d78ec37dd6c8669e2f2f997f2e96e';
 
-        function closeAllMenus() {
-            document.querySelectorAll('.member-menu').forEach(m => m.remove());
+        function closeAllMenus() { document.querySelectorAll('.member-menu').forEach(m => m.remove()); }
+
+        function getAvatarUrl(member) {
+            if (!member) return null;
+            let source = member.avatarUrl || member.avatar;
+            if (!source) return null;
+            if (source.indexOf('http') === 0) return source.replace(/\/(50|170)\.png$/, '/30.png');
+            return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
         }
 
-    function getAvatarUrl(member) {
-        if (!member) return null;
-
-        // Use avatarUrl if it exists, it's usually the most direct
-        let source = member.avatarUrl || member.avatar;
-
-        if (!source) return null;
-
-        // If the source is already a full URL (starts with http)
-        if (source.indexOf('http') === 0) {
-        // Just clean up the size at the end to ensure it's 30px
-        return source.replace(/\/(50|170)\.png$/, '/30.png');
-        }
-
-        // If it's just a hash/ID code, build the URL correctly
-        return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
-        }
-        
         function formatDate(dateStr) {
             if (!dateStr) return "";
             const d = new Date(dateStr);
-            const now = new Date();
-            const currentYear = now.getFullYear();
-    
             const options = { month: 'short', day: 'numeric' };
-            // If the date isn't in 2026, add the year to the display
-            if (d.getFullYear() !== currentYear) {
-                options.year = 'numeric';
-            }
-    
+            if (d.getFullYear() !== new Date().getFullYear()) options.year = 'numeric';
             return d.toLocaleDateString(undefined, options);
         }
 
-    t.render(function(){
-        return t.getRestApi().isAuthorized()
-        .then(function(authorized) {
-            if (!authorized) {
-                document.getElementById('auth-section').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-                t.sizeTo(120);
-            } else {
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-
-                // Simplified: Ask for 'members' generally
-                return t.board('members')
-                .then(function(board){
-                    // Trello returns the board object; we want the members array
-                    boardMembers = board.members || []; 
-                    return renderChecklist();
-                })
-                .catch(function(err) {
-                    console.error("Board loading error:", err);
-                    return renderChecklist(); // Run anyway so the list doesn't stay empty
-                });
-            }
-        });
-    });
-        
-        function renderChecklist() {
-            return t.get('card', 'shared', 'checklistData', [])
-            .then(function(data){
-                const listDiv = document.getElementById('list');
-                listDiv.innerHTML = '';
-                
-                data.forEach((item, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'item' + (item.isSub ? ' indent' : '') + (item.checked ? ' is-checked' : '');
-                    
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.checked = item.checked || false;
-                    cb.onchange = () => { item.checked = cb.checked; save(data); };
-
-                    const txt = document.createElement('input');
-                    txt.className = 'task-input';
-                    txt.value = item.text || '';
-                    txt.placeholder = "Add an item...";
-                    txt.onblur = () => { item.text = txt.value; save(data); };
-
-                    const controls = document.createElement('div');
-                    controls.className = 'item-controls';
-
-                    // 1. DATE PICKER (Now on the Left)
-                    const dateWrap = document.createElement('div');
-                    dateWrap.className = 'control-wrapper' + (item.dueDate ? '' : ' is-empty');
-                    
-                    // Calculate if date is overdue, soon, or normal
-                    let dateClass = "";
-                    if (item.dueDate && !item.checked) {
-                        const due = new Date(item.dueDate + 'T00:00:00'); // Ensure local time
-                        const today = new Date();
-                        today.setHours(0,0,0,0);
-                        const diff = (due - today) / (1000 * 60 * 60 * 24);
-
-                        if (diff < 0) dateClass = "date-overdue";         // Before today
-                        else if (diff < 1) dateClass = "date-due-now";    // Today
-                        else if (diff < 2) dateClass = "date-soon";       // Tomorrow
-                    }
-
-                    const dateDisplay = item.dueDate ? 
-                        `<div class="date-badge ${dateClass}">📅 ${formatDate(item.dueDate)}</div>` : 
-                        `<span>📅</span>`;
-                    dateWrap.innerHTML = dateDisplay;
-
-                    const dateInp = document.createElement('input');
-                    dateInp.type = 'date';
-                    dateInp.className = 'date-input-overlay';
-                    dateInp.value = item.dueDate || '';
-                    dateInp.onchange = () => { item.dueDate = dateInp.value; save(data); };
-                    dateWrap.appendChild(dateInp);
-
-                    // 2. MEMBER PICKER (Now on the Right)
-                    const memWrap = document.createElement('div');
-                    memWrap.className = 'control-wrapper' + (item.idMember ? '' : ' is-empty');
-                    const assigned = boardMembers.find(m => m.id === item.idMember);
-                    
-                    if (assigned) {
-                        const avatarUrl = getAvatarUrl(assigned);
-                        memWrap.innerHTML = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${assigned.initials}</div>`;
-                    } else {
-                        memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
-                    }
-                    memWrap.onclick = (e) => {
-                        e.stopPropagation();
-                        closeAllMenus();
-                        const menu = document.createElement('div');
-                        menu.className = 'member-menu';
-                        
-                        const noneOpt = document.createElement('div');
-                        noneOpt.className = 'member-option';
-                        noneOpt.innerHTML = `<div class="avatar">?</div><span>None</span>`;
-                        noneOpt.onclick = () => { item.idMember = null; save(data); };
-                        menu.appendChild(noneOpt);
-
-                        boardMembers.forEach(m => {
-                            const opt = document.createElement('div');
-                            opt.className = 'member-option';
-                            const avatarUrl = getAvatarUrl(m);
-                            const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
-                            opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
-                            opt.onclick = () => { item.idMember = m.id; save(data); };
-                            menu.appendChild(opt);
-                        });
-                        memWrap.appendChild(menu);
-                    };
-
-                    // 3. DELETE
-                    const del = document.createElement('div');
-                    del.className = 'delete-btn';
-                    del.innerHTML = '❌';
-                    del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); save(data); };
-
-                    controls.append(dateWrap, memWrap);
-                    div.append(cb, txt, controls, del);
-                    listDiv.appendChild(div);
-                });
-                
-                setTimeout(() => t.sizeTo('body'), 50);
+        t.render(function(){
+            return t.getRestApi().isAuthorized()
+            .then(function(authorized) {
+                if (!authorized) {
+                    document.getElementById('auth-section').classList.remove('hidden');
+                    document.getElementById('main-content').classList.add('hidden');
+                    t.sizeTo(120);
+                } else {
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    return t.board('members').then(board => {
+                        boardMembers = board.members || [];
+                        return renderChecklist();
+                    });
+                }
             });
+        });
+
+        async function renderChecklist() {
+            const card = await t.card('id');
+            const token = await t.getRestApi().getToken();
+
+            // 1. Get real Trello Checklists
+            const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
+            const mainList = checklists.find(c => c.name === CHECKLIST_NAME);
+            
+            if (!mainList) {
+                document.getElementById('list').innerHTML = '<p style="padding:10px; opacity:0.5;">No tasks yet. Click "Add Task" to begin.</p>';
+                return t.sizeTo('body');
+            }
+
+            // 2. Get local Metadata (Links to Mirror Cards)
+            const meta = await t.get('card', 'shared', 'itemMeta_' + mainList.id, {});
+
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = '';
+
+            mainList.checkItems.sort((a,b) => a.pos - b.pos).forEach(item => {
+                const isSub = item.name.startsWith('   ');
+                const itemMeta = meta[item.id] || {};
+                
+                const div = document.createElement('div');
+                div.className = 'item' + (isSub ? ' indent' : '') + (item.state === 'complete' ? ' is-checked' : '');
+
+                // Checkbox
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = (item.state === 'complete');
+                cb.onclick = () => toggleCheck(mainList.id, item, itemMeta.mirrorCardId);
+
+                // Text
+                const txt = document.createElement('input');
+                txt.className = 'task-input';
+                txt.value = item.name.trim();
+                txt.onblur = () => updateText(mainList.id, item, txt.value, isSub, itemMeta.mirrorCardId);
+
+                const controls = document.createElement('div');
+                controls.className = 'item-controls';
+
+                // Date Logic - Using Metadata
+                const dateWrap = document.createElement('div');
+                dateWrap.className = 'control-wrapper' + (itemMeta.dueDate ? '' : ' is-empty');
+                let dateClass = "";
+                if (itemMeta.dueDate && item.state !== 'complete') {
+                    const diff = (new Date(itemMeta.dueDate + 'T00:00:00') - new Date().setHours(0,0,0,0)) / 86400000;
+                    if (diff < 0) dateClass = "date-overdue";
+                    else if (diff < 1) dateClass = "date-due-now";
+                    else if (diff < 2) dateClass = "date-soon";
+                }
+                dateWrap.innerHTML = itemMeta.dueDate ? `<div class="date-badge ${dateClass}">📅 ${formatDate(itemMeta.dueDate)}</div>` : '📅';
+                
+                const dateInp = document.createElement('input');
+                dateInp.type = 'date';
+                dateInp.className = 'date-input-overlay';
+                dateInp.value = itemMeta.dueDate || '';
+                dateInp.onchange = () => updateMirrorDate(mainList.id, item.id, dateInp.value, itemMeta.mirrorCardId);
+                dateWrap.appendChild(dateInp);
+
+                // Member Logic - Using Metadata
+                const memWrap = document.createElement('div');
+                memWrap.className = 'control-wrapper' + (itemMeta.idMember ? '' : ' is-empty');
+                const assigned = boardMembers.find(m => m.id === itemMeta.idMember);
+                memWrap.innerHTML = assigned ? (getAvatarUrl(assigned) ? `<img class="avatar" src="${getAvatarUrl(assigned)}">` : `<div class="avatar">${assigned.initials}</div>`) : '⭐';
+                memWrap.onclick = (e) => {
+                    e.stopPropagation(); closeAllMenus();
+                    const menu = document.createElement('div');
+                    menu.className = 'member-menu';
+                    boardMembers.forEach(m => {
+                        const opt = document.createElement('div');
+                        opt.className = 'member-option';
+                        opt.innerHTML = `<img class="avatar" src="${getAvatarUrl(m) || ''}"> <span>${m.fullName}</span>`;
+                        opt.onclick = () => updateMirrorMember(mainList.id, item.id, m.id, itemMeta.mirrorCardId);
+                        menu.appendChild(opt);
+                    });
+                    memWrap.appendChild(menu);
+                };
+
+                const del = document.createElement('div');
+                del.className = 'delete-btn';
+                del.innerHTML = '❌';
+                del.onclick = () => deleteItem(mainList.id, item.id, itemMeta.mirrorCardId);
+
+                controls.append(dateWrap, memWrap);
+                div.append(cb, txt, controls, del);
+                listDiv.appendChild(div);
+            });
+            t.sizeTo('body');
         }
 
-        async function save(data) {
-            await t.set('card', 'shared', 'checklistData', data);
-            renderChecklist(); 
+        // --- CORE FUNCTIONS (API) ---
+
+        async function addItem(isSub) {
+            const token = await t.getRestApi().getToken();
+            const card = await t.card('id', 'name');
+            const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
+            
+            let list = checklists.find(c => c.name === CHECKLIST_NAME);
+            if (!list) list = await fetch(`https://api.trello.com/1/checklists?idCard=${card.id}&name=${CHECKLIST_NAME}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
+            
+            const name = isSub ? '   New Sub-task' : 'New Task';
+            const item = await fetch(`https://api.trello.com/1/checklists/${list.id}/checkItems?name=${encodeURIComponent(name)}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
+            
+            // Create Mirror Card
+            const mirrorCard = await fetch(`https://api.trello.com/1/cards?idList=${await getListId(MIRROR_LIST_NAME)}&name=${encodeURIComponent(name + ' (Mirror of ' + card.name + ')')}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
+            
+            // Save link to mirror card
+            await saveMeta(list.id, item.id, 'mirrorCardId', mirrorCard.id);
+            renderChecklist();
+        }
+
+        async function toggleCheck(listId, item, mirrorCardId) {
+            const token = await t.getRestApi().getToken();
+            const card = await t.card('id');
+            const state = item.state === 'complete' ? 'incomplete' : 'complete';
+            
+            // Update Real Checklist
+            await fetch(`https://api.trello.com/1/cards/${card.id}/checklist/${listId}/checkItem/${item.id}?state=${state}&key=${key}&token=${token}`, { method: 'PUT' });
+            
+            // Update Mirror Card List
+            const targetListId = state === 'complete' ? await getListId(DONE_LIST_NAME) : await getListId(MIRROR_LIST_NAME);
+            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idList=${targetListId}&key=${key}&token=${token}`, { method: 'PUT' });
+            
+            renderChecklist();
+        }
+
+        async function updateText(listId, item, newText, isSub, mirrorCardId) {
+            if (!newText) return; // Don't sync empty names
+            const token = await t.getRestApi().getToken();
+            const card = await t.card('id');
+            const finalName = isSub ? '   ' + newText : newText;
+    
+            // 1. Update Real Checklist Name
+            await fetch(`https://api.trello.com/1/cards/${card.id}/checklist/${listId}/checkItem/${item.id}?name=${encodeURIComponent(finalName)}&key=${key}&token=${token}`, { method: 'PUT' });
+    
+            // 2. Update Mirror Card Name (only if mirrorCardId exists)
+            if (mirrorCardId) {
+                await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?name=${encodeURIComponent(newText)}&key=${key}&token=${token}`, { method: 'PUT' });
+            }
+        }
+        
+        async function deleteItem(listId, itemId, mirrorCardId) {
+            const token = await t.getRestApi().getToken();
+            // Delete Real Item
+            await fetch(`https://api.trello.com/1/checklists/${listId}/checkItems/${itemId}?key=${key}&token=${token}`, { method: 'DELETE' });
+            // Archive Mirror Card
+            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?closed=true&key=${key}&token=${token}`, { method: 'PUT' });
+            renderChecklist();
+        }
+
+        // --- METADATA & MIRROR SYNCING ---
+
+        async function updateMirrorDate(listId, itemId, dateStr, mirrorCardId) {
+            const token = await t.getRestApi().getToken();
+            await saveMeta(listId, itemId, 'dueDate', dateStr);
+            // Update Real Card Date
+            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?due=${dateStr}&key=${key}&token=${token}`, { method: 'PUT' });
+        }
+
+        async function updateMirrorMember(listId, itemId, memberId, mirrorCardId) {
+            const token = await t.getRestApi().getToken();
+            await saveMeta(listId, itemId, 'idMember', memberId);
+            // Update Real Card Member
+            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idMembers=${memberId}&key=${key}&token=${token}`, { method: 'PUT' });
+        }
+
+        async function saveMeta(listId, itemId, field, value) {
+            const meta = await t.get('card', 'shared', 'itemMeta_' + listId, {});
+            if (!meta[itemId]) meta[itemId] = {};
+            meta[itemId][field] = value;
+            await t.set('card', 'shared', 'itemMeta_' + listId, meta);
+            renderChecklist();
+        }
+
+        async function getListId(listName) {
+            const token = await t.getRestApi().getToken();
+            const lists = await fetch(`https://api.trello.com/1/boards/${MIRROR_BOARD_ID}/lists?key=${key}&token=${token}`).then(r => r.json());
+            const list = lists.find(l => l.name === listName);
+            return list ? list.id : null;
         }
 
         document.getElementById('add-main').onclick = () => addItem(false);
         document.getElementById('add-sub').onclick = () => addItem(true);
-
-        function addItem(isSub) {
-            t.get('card', 'shared', 'checklistData', [])
-            .then(data => {
-                data = data || [];
-                data.push({ text: '', checked: false, isSub: isSub });
-                return t.set('card', 'shared', 'checklistData', data);
-            })
-            .then(() => renderChecklist());
-        }
-
-        document.getElementById('auth-btn').onclick = function() {
-            t.getRestApi().authorize({ scope: 'read,write' }).then(() => location.reload());
-        };
+        document.getElementById('auth-btn').onclick = () => t.getRestApi().authorize({ scope: 'read,write' }).then(() => location.reload());
     </script>
 </body>
 </html>
