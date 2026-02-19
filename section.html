@@ -7,130 +7,61 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif;
             padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; 
         }
-
         #main-content { padding-bottom: 60px; } 
-
-        .item { 
-            display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px;
-        }
+        .item { display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px; }
         .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
         .indent { margin-left: 24px; border-left: 2px solid #5e6c84; }
-
         input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; flex-shrink: 0; }
-
-        .task-input { 
-            border: none; background: transparent; flex: 1; padding: 4px 0; 
-            color: inherit; font-size: 14px; outline: none; min-width: 0;
-        }
-
-        /* --- ACTION BAR --- */
-        .item-controls {
-            display: flex; align-items: center; margin-left: 8px; flex-shrink: 0;
-        }
-
-        /* Hide controls only if data is empty; if data exists, show it always */
-        .control-wrapper {
-            position: relative; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-left: 6px; min-width: 24px; height: 24px;
-        }
-
-        /* Hide specific empty icons until hover */
+        .task-input { border: none; background: transparent; flex: 1; padding: 4px 0; color: inherit; font-size: 14px; outline: none; min-width: 0; }
+        .item-controls { display: flex; align-items: center; margin-left: 8px; flex-shrink: 0; }
+        .control-wrapper { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 6px; min-width: 24px; height: 24px; }
         .is-empty { opacity: 0; transition: opacity 0.15s; }
         .item:hover .is-empty { opacity: 1; }
-
-        /* Avatar Styling */
-        .avatar {
-            width: 24px; height: 24px; border-radius: 50%;
-            background: #dfe1e6; display: flex; align-items: center;
-            justify-content: center; font-size: 10px; font-weight: bold;
-            color: #172b4d; overflow: hidden; object-fit: cover;
-        }
-
-        /* Date Badge Styling (Like Trello) */
-        .date-badge {
-            font-size: 12px; padding: 2px 6px; border-radius: 3px;
-            background: rgba(255,255,255,0.15); display: flex; align-items: center; gap: 4px;
-        }
-        .date-badge:hover { background: rgba(255,255,255,0.25); }
-
-        /* Member Picker Dropdown */
-        .member-menu {
-            position: absolute; top: 30px; right: 0; z-index: 1000;
-            background: #ffffff; border-radius: 3px; 
-            box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
-            width: 220px; padding: 4px 0; color: #172b4d;
-        }
-        .member-option {
-            display: flex; align-items: center; padding: 8px 12px; cursor: pointer;
-        }
+        .avatar { width: 24px; height: 24px; border-radius: 50%; background: #dfe1e6; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #172b4d; overflow: hidden; object-fit: cover; }
+        .date-badge { font-size: 12px; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,0.15); display: flex; align-items: center; gap: 4px; }
+        .member-menu { position: absolute; top: 30px; right: 0; z-index: 1000; background: #ffffff; border-radius: 3px; box-shadow: 0 8px 16px -4px rgba(9,30,66,0.25), 0 0 0 1px rgba(9,30,66,0.08); width: 220px; padding: 4px 0; color: #172b4d; }
+        .member-option { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; }
         .member-option:hover { background: #f4f5f7; }
         .member-option .avatar { margin-right: 10px; flex-shrink: 0; }
-
-        /* Hidden Date Overlay */
-        .date-input-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; cursor: pointer; z-index: 2;
-        }
-
-        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; }
+        .date-input-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; cursor: pointer; }
         .item:hover .delete-btn { opacity: 0.6; }
         .delete-btn:hover { opacity: 1; color: #eb5a46; }
-
         .footer { padding: 12px 8px; display: flex; gap: 8px; }
         .hidden { display: none !important; }
-        
-        button { 
-            background: rgba(255,255,255,0.1); border: none; color: inherit; 
-            padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px;
-        }
+        button { background: rgba(255,255,255,0.1); border: none; color: inherit; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px; }
         .mod-primary { background: #0079bf; color: white; }
-
-        /* Strikethrough and fading for completed items */
-        .item.is-checked .task-input {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-        .item.is-checked .avatar, 
-        .item.is-checked .date-badge {
-            opacity: 0.5;
-        }
-
-        /* Date State Colors */
-        .date-due-now { color: #eb5a46 !important; font-weight: bold; } /* Red */
-        .date-overdue { color: #eb5a46 !important; font-weight: bold; } /* Red */
-        .date-soon { color: #f2d600 !important; font-weight: bold; }    /* Yellow */
-        
+        .item.is-checked .task-input { text-decoration: line-through; opacity: 0.6; }
+        .date-due-now, .date-overdue { color: #eb5a46 !important; font-weight: bold; }
+        .date-soon { color: #f2d600 !important; font-weight: bold; }
     </style>
 </head>
-    
 <body onclick="closeAllMenus()">
     <div id="auth-section" class="hidden" style="padding: 20px; text-align: center;">
-        <button id="auth-btn" class="mod-primary">Connect Trello</button>
+        <button id="auth-btn" class="mod-primary">Connect Trello to Start</button>
     </div>
 
     <div id="main-content" class="hidden">
         <div id="list"></div>
         <div class="footer">
-            <button id="add-main" class="mod-primary">Add Task</button>
-            <button id="add-sub">Add Sub</button>
+            <button id="add-main" class="mod-primary">+ Add Task</button>
+            <button id="add-sub">+ Add Sub-task</button>
         </div>
     </div>
 
     <script>
-var t = TrelloPowerUp.iframe({
+        var t = TrelloPowerUp.iframe({
             appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
             appName: 'Process Checklist'
         });
 
-        // --- CONFIGURATION ---
+        const key = '8a3d78ec37dd6c8669e2f2f997f2e96e';
         const CHECKLIST_NAME = "Tasks";
-        const MIRROR_BOARD_ID = '6996526f2424ecd5c7a1bda9'; // <--- PUT YOUR BOARD ID HERE
-        const MIRROR_LIST_NAME = 'To Do'; // The list to create new cards in
-        const DONE_LIST_NAME = 'Done'; // The list to move cards to when checked
-        // ---------------------
+        const MIRROR_BOARD_ID = '6996526f2424ecd5c7a1bda9';
+        const MIRROR_LIST_NAME = 'To Do';
+        const DONE_LIST_NAME = 'Done';
 
         var boardMembers = [];
-        const key = '8a3d78ec37dd6c8669e2f2f997f2e96e';
 
         function closeAllMenus() { document.querySelectorAll('.member-menu').forEach(m => m.remove()); }
 
@@ -145,9 +76,7 @@ var t = TrelloPowerUp.iframe({
         function formatDate(dateStr) {
             if (!dateStr) return "";
             const d = new Date(dateStr);
-            const options = { month: 'short', day: 'numeric' };
-            if (d.getFullYear() !== new Date().getFullYear()) options.year = 'numeric';
-            return d.toLocaleDateString(undefined, options);
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
 
         t.render(function(){
@@ -156,126 +85,109 @@ var t = TrelloPowerUp.iframe({
                 if (!authorized) {
                     document.getElementById('auth-section').classList.remove('hidden');
                     document.getElementById('main-content').classList.add('hidden');
-                    t.sizeTo(120);
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
+                    // Get members once on load
                     return t.board('members').then(board => {
                         boardMembers = board.members || [];
-                        return renderChecklist();
+                        renderChecklist();
                     });
                 }
+            }).catch(err => {
+                console.error("Auth Error:", err);
             });
         });
 
         async function renderChecklist() {
-            const card = await t.card('id');
-            const token = await t.getRestApi().getToken();
-
-            // 1. Get real Trello Checklists
-            const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
-            const mainList = checklists.find(c => c.name === CHECKLIST_NAME);
-            
-            if (!mainList) {
-                document.getElementById('list').innerHTML = '<p style="padding:10px; opacity:0.5;">No tasks yet. Click "Add Task" to begin.</p>';
-                return t.sizeTo('body');
-            }
-
-            // 2. Get local Metadata (Links to Mirror Cards)
-            const meta = await t.get('card', 'shared', 'itemMeta_' + mainList.id, {});
-
-            const listDiv = document.getElementById('list');
-            listDiv.innerHTML = '';
-
-            mainList.checkItems.sort((a,b) => a.pos - b.pos).forEach(item => {
-                const isSub = item.name.startsWith('   ');
-                const itemMeta = meta[item.id] || {};
+            try {
+                const card = await t.card('id');
+                const token = await t.getRestApi().getToken();
+                const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
+                const mainList = checklists.find(c => c.name === CHECKLIST_NAME);
                 
-                const div = document.createElement('div');
-                div.className = 'item' + (isSub ? ' indent' : '') + (item.state === 'complete' ? ' is-checked' : '');
-
-                // Checkbox
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.checked = (item.state === 'complete');
-                cb.onclick = () => toggleCheck(mainList.id, item, itemMeta.mirrorCardId);
-
-                // Text
-                const txt = document.createElement('input');
-                txt.className = 'task-input';
-                txt.value = item.name.trim();
-                txt.onblur = () => updateText(mainList.id, item, txt.value, isSub, itemMeta.mirrorCardId);
-
-                const controls = document.createElement('div');
-                controls.className = 'item-controls';
-
-                // Date Logic - Using Metadata
-                const dateWrap = document.createElement('div');
-                dateWrap.className = 'control-wrapper' + (itemMeta.dueDate ? '' : ' is-empty');
-                let dateClass = "";
-                if (itemMeta.dueDate && item.state !== 'complete') {
-                    const diff = (new Date(itemMeta.dueDate + 'T00:00:00') - new Date().setHours(0,0,0,0)) / 86400000;
-                    if (diff < 0) dateClass = "date-overdue";
-                    else if (diff < 1) dateClass = "date-due-now";
-                    else if (diff < 2) dateClass = "date-soon";
+                if (!mainList) {
+                    document.getElementById('list').innerHTML = '<p style="padding:10px; opacity:0.5;">No "Tasks" checklist found. Click Add Task to create one.</p>';
+                    return t.sizeTo('body');
                 }
-                dateWrap.innerHTML = itemMeta.dueDate ? `<div class="date-badge ${dateClass}">📅 ${formatDate(itemMeta.dueDate)}</div>` : '📅';
-                
-                const dateInp = document.createElement('input');
-                dateInp.type = 'date';
-                dateInp.className = 'date-input-overlay';
-                dateInp.value = itemMeta.dueDate || '';
-                dateInp.onchange = () => updateMirrorDate(mainList.id, item.id, dateInp.value, itemMeta.mirrorCardId);
-                dateWrap.appendChild(dateInp);
 
-                // Member Logic - Using Metadata
-                const memWrap = document.createElement('div');
-                memWrap.className = 'control-wrapper' + (itemMeta.idMember ? '' : ' is-empty');
-                const assigned = boardMembers.find(m => m.id === itemMeta.idMember);
-                memWrap.innerHTML = assigned ? (getAvatarUrl(assigned) ? `<img class="avatar" src="${getAvatarUrl(assigned)}">` : `<div class="avatar">${assigned.initials}</div>`) : '⭐';
-                memWrap.onclick = (e) => {
-                    e.stopPropagation(); closeAllMenus();
-                    const menu = document.createElement('div');
-                    menu.className = 'member-menu';
-                    boardMembers.forEach(m => {
-                        const opt = document.createElement('div');
-                        opt.className = 'member-option';
-                        opt.innerHTML = `<img class="avatar" src="${getAvatarUrl(m) || ''}"> <span>${m.fullName}</span>`;
-                        opt.onclick = () => updateMirrorMember(mainList.id, item.id, m.id, itemMeta.mirrorCardId);
-                        menu.appendChild(opt);
-                    });
-                    memWrap.appendChild(menu);
-                };
+                const meta = await t.get('card', 'shared', 'itemMeta_' + mainList.id, {});
+                const listDiv = document.getElementById('list');
+                listDiv.innerHTML = '';
 
-                const del = document.createElement('div');
-                del.className = 'delete-btn';
-                del.innerHTML = '❌';
-                del.onclick = () => deleteItem(mainList.id, item.id, itemMeta.mirrorCardId);
+                mainList.checkItems.sort((a,b) => a.pos - b.pos).forEach(item => {
+                    const isSub = item.name.startsWith('   ');
+                    const itemMeta = meta[item.id] || {};
+                    const div = document.createElement('div');
+                    div.className = 'item' + (isSub ? ' indent' : '') + (item.state === 'complete' ? ' is-checked' : '');
 
-                controls.append(dateWrap, memWrap);
-                div.append(cb, txt, controls, del);
-                listDiv.appendChild(div);
-            });
-            t.sizeTo('body');
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = (item.state === 'complete');
+                    cb.onclick = () => toggleCheck(mainList.id, item, itemMeta.mirrorCardId);
+
+                    const txt = document.createElement('input');
+                    txt.className = 'task-input';
+                    txt.value = item.name.trim();
+                    txt.onblur = () => updateText(mainList.id, item, txt.value, isSub, itemMeta.mirrorCardId);
+
+                    const controls = document.createElement('div');
+                    controls.className = 'item-controls';
+
+                    const dateWrap = document.createElement('div');
+                    dateWrap.className = 'control-wrapper' + (itemMeta.dueDate ? '' : ' is-empty');
+                    dateWrap.innerHTML = itemMeta.dueDate ? `<div class="date-badge">📅 ${formatDate(itemMeta.dueDate)}</div>` : '📅';
+                    
+                    const dateInp = document.createElement('input');
+                    dateInp.type = 'date';
+                    dateInp.className = 'date-input-overlay';
+                    dateInp.onchange = (e) => updateMirrorDate(mainList.id, item.id, e.target.value, itemMeta.mirrorCardId);
+                    dateWrap.appendChild(dateInp);
+
+                    const memWrap = document.createElement('div');
+                    memWrap.className = 'control-wrapper' + (itemMeta.idMember ? '' : ' is-empty');
+                    const assigned = boardMembers.find(m => m.id === itemMeta.idMember);
+                    memWrap.innerHTML = assigned ? `<div class="avatar">${assigned.initials}</div>` : '👤';
+                    memWrap.onclick = (e) => {
+                        e.stopPropagation();
+                        const menu = document.createElement('div');
+                        menu.className = 'member-menu';
+                        boardMembers.forEach(m => {
+                            const opt = document.createElement('div');
+                            opt.className = 'member-option';
+                            opt.innerText = m.fullName;
+                            opt.onclick = () => updateMirrorMember(mainList.id, item.id, m.id, itemMeta.mirrorCardId);
+                            menu.appendChild(opt);
+                        });
+                        memWrap.appendChild(menu);
+                    };
+
+                    const del = document.createElement('div');
+                    del.className = 'delete-btn';
+                    del.innerHTML = '❌';
+                    del.onclick = () => deleteItem(mainList.id, item.id, itemMeta.mirrorCardId);
+
+                    controls.append(dateWrap, memWrap);
+                    div.append(cb, txt, controls, del);
+                    listDiv.appendChild(div);
+                });
+                t.sizeTo('body');
+            } catch (e) { console.error("Render Error:", e); }
         }
-
-        // --- CORE FUNCTIONS (API) ---
 
         async function addItem(isSub) {
             const token = await t.getRestApi().getToken();
             const card = await t.card('id', 'name');
             const checklists = await fetch(`https://api.trello.com/1/cards/${card.id}/checklists?key=${key}&token=${token}`).then(r => r.json());
-            
             let list = checklists.find(c => c.name === CHECKLIST_NAME);
             if (!list) list = await fetch(`https://api.trello.com/1/checklists?idCard=${card.id}&name=${CHECKLIST_NAME}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
             
             const name = isSub ? '   New Sub-task' : 'New Task';
             const item = await fetch(`https://api.trello.com/1/checklists/${list.id}/checkItems?name=${encodeURIComponent(name)}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
             
-            // Create Mirror Card
-            const mirrorCard = await fetch(`https://api.trello.com/1/cards?idList=${await getListId(MIRROR_LIST_NAME)}&name=${encodeURIComponent(name + ' (Mirror of ' + card.name + ')')}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
+            const toDoListId = await getListId(MIRROR_LIST_NAME);
+            const mirrorCard = await fetch(`https://api.trello.com/1/cards?idList=${toDoListId}&name=${encodeURIComponent(name)}&key=${key}&token=${token}`, { method: 'POST' }).then(r => r.json());
             
-            // Save link to mirror card
             await saveMeta(list.id, item.id, 'mirrorCardId', mirrorCard.id);
             renderChecklist();
         }
@@ -284,55 +196,41 @@ var t = TrelloPowerUp.iframe({
             const token = await t.getRestApi().getToken();
             const card = await t.card('id');
             const state = item.state === 'complete' ? 'incomplete' : 'complete';
-            
-            // Update Real Checklist
             await fetch(`https://api.trello.com/1/cards/${card.id}/checklist/${listId}/checkItem/${item.id}?state=${state}&key=${key}&token=${token}`, { method: 'PUT' });
-            
-            // Update Mirror Card List
-            const targetListId = state === 'complete' ? await getListId(DONE_LIST_NAME) : await getListId(MIRROR_LIST_NAME);
-            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idList=${targetListId}&key=${key}&token=${token}`, { method: 'PUT' });
-            
+            if (mirrorCardId) {
+                const targetListId = state === 'complete' ? await getListId(DONE_LIST_NAME) : await getListId(MIRROR_LIST_NAME);
+                await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idList=${targetListId}&key=${key}&token=${token}`, { method: 'PUT' });
+            }
             renderChecklist();
         }
 
         async function updateText(listId, item, newText, isSub, mirrorCardId) {
-            if (!newText) return; // Don't sync empty names
             const token = await t.getRestApi().getToken();
             const card = await t.card('id');
             const finalName = isSub ? '   ' + newText : newText;
-    
-            // 1. Update Real Checklist Name
             await fetch(`https://api.trello.com/1/cards/${card.id}/checklist/${listId}/checkItem/${item.id}?name=${encodeURIComponent(finalName)}&key=${key}&token=${token}`, { method: 'PUT' });
-    
-            // 2. Update Mirror Card Name (only if mirrorCardId exists)
-            if (mirrorCardId) {
-                await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?name=${encodeURIComponent(newText)}&key=${key}&token=${token}`, { method: 'PUT' });
-            }
-        }
-        
-        async function deleteItem(listId, itemId, mirrorCardId) {
-            const token = await t.getRestApi().getToken();
-            // Delete Real Item
-            await fetch(`https://api.trello.com/1/checklists/${listId}/checkItems/${itemId}?key=${key}&token=${token}`, { method: 'DELETE' });
-            // Archive Mirror Card
-            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?closed=true&key=${key}&token=${token}`, { method: 'PUT' });
-            renderChecklist();
+            if (mirrorCardId) await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?name=${encodeURIComponent(newText)}&key=${key}&token=${token}`, { method: 'PUT' });
         }
 
-        // --- METADATA & MIRROR SYNCING ---
+        async function deleteItem(listId, itemId, mirrorCardId) {
+            const token = await t.getRestApi().getToken();
+            await fetch(`https://api.trello.com/1/checklists/${listId}/checkItems/${itemId}?key=${key}&token=${token}`, { method: 'DELETE' });
+            if (mirrorCardId) await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?closed=true&key=${key}&token=${token}`, { method: 'PUT' });
+            renderChecklist();
+        }
 
         async function updateMirrorDate(listId, itemId, dateStr, mirrorCardId) {
             const token = await t.getRestApi().getToken();
             await saveMeta(listId, itemId, 'dueDate', dateStr);
-            // Update Real Card Date
-            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?due=${dateStr}&key=${key}&token=${token}`, { method: 'PUT' });
+            if (mirrorCardId) await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?due=${dateStr}&key=${key}&token=${token}`, { method: 'PUT' });
+            renderChecklist();
         }
 
         async function updateMirrorMember(listId, itemId, memberId, mirrorCardId) {
             const token = await t.getRestApi().getToken();
             await saveMeta(listId, itemId, 'idMember', memberId);
-            // Update Real Card Member
-            await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idMembers=${memberId}&key=${key}&token=${token}`, { method: 'PUT' });
+            if (mirrorCardId) await fetch(`https://api.trello.com/1/cards/${mirrorCardId}?idMembers=${memberId}&key=${key}&token=${token}`, { method: 'PUT' });
+            renderChecklist();
         }
 
         async function saveMeta(listId, itemId, field, value) {
@@ -340,13 +238,12 @@ var t = TrelloPowerUp.iframe({
             if (!meta[itemId]) meta[itemId] = {};
             meta[itemId][field] = value;
             await t.set('card', 'shared', 'itemMeta_' + listId, meta);
-            renderChecklist();
         }
 
         async function getListId(listName) {
             const token = await t.getRestApi().getToken();
             const lists = await fetch(`https://api.trello.com/1/boards/${MIRROR_BOARD_ID}/lists?key=${key}&token=${token}`).then(r => r.json());
-            const list = lists.find(l => l.name === listName);
+            const list = lists.find(l => l.name.toLowerCase() === listName.toLowerCase());
             return list ? list.id : null;
         }
 
