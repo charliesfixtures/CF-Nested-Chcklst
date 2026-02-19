@@ -23,56 +23,26 @@
             color: inherit; font-size: 14px; outline: none; min-width: 0;
         }
 
-        /* --- ACTION BAR --- */
         .item-controls {
             display: flex; align-items: center; margin-left: 8px; flex-shrink: 0;
         }
 
-        /* Hide controls only if data is empty; if data exists, show it always */
-        .control-wrapper {
-            position: relative; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-left: 6px; min-width: 24px; height: 24px;
+        /* --- ATTENDANCE BUTTONS --- */
+        .status-btn {
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            background: rgba(255,255,255,0.05);
         }
+        .status-btn:hover { background: rgba(255,255,255,0.2); }
+        .status-btn:active { transform: scale(0.9); }
 
-        /* Hide specific empty icons until hover */
-        .is-empty { opacity: 0; transition: opacity 0.15s; }
-        .item:hover .is-empty { opacity: 1; }
-
-        /* Avatar Styling */
-        .avatar {
-            width: 24px; height: 24px; border-radius: 50%;
-            background: #dfe1e6; display: flex; align-items: center;
-            justify-content: center; font-size: 10px; font-weight: bold;
-            color: #172b4d; overflow: hidden; object-fit: cover;
-        }
-
-        /* Date Badge Styling (Like Trello) */
-        .date-badge {
-            font-size: 12px; padding: 2px 6px; border-radius: 3px;
-            background: rgba(255,255,255,0.15); display: flex; align-items: center; gap: 4px;
-        }
-        .date-badge:hover { background: rgba(255,255,255,0.25); }
-
-        /* Member Picker Dropdown */
-        .member-menu {
-            position: absolute; top: 30px; right: 0; z-index: 1000;
-            background: #ffffff; border-radius: 3px; 
-            box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
-            width: 220px; padding: 4px 0; color: #172b4d;
-        }
-        .member-option {
-            display: flex; align-items: center; padding: 8px 12px; cursor: pointer;
-        }
-        .member-option:hover { background: #f4f5f7; }
-        .member-option .avatar { margin-right: 10px; flex-shrink: 0; }
-
-        /* Hidden Date Overlay */
-        .date-input-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; cursor: pointer; z-index: 2;
-        }
-
-        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; }
+        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; cursor: pointer; }
         .item:hover .delete-btn { opacity: 0.6; }
         .delete-btn:hover { opacity: 1; color: #eb5a46; }
 
@@ -85,21 +55,10 @@
         }
         .mod-primary { background: #0079bf; color: white; }
 
-        /* Strikethrough and fading for completed items */
         .item.is-checked .task-input {
             text-decoration: line-through;
             opacity: 0.6;
         }
-        .item.is-checked .avatar, 
-        .item.is-checked .date-badge {
-            opacity: 0.5;
-        }
-
-        /* Date State Colors */
-        .date-due-now { color: #eb5a46 !important; font-weight: bold; } /* Red */
-        .date-overdue { color: #eb5a46 !important; font-weight: bold; } /* Red */
-        .date-soon { color: #f2d600 !important; font-weight: bold; }    /* Yellow */
-        
     </style>
 </head>
     
@@ -211,70 +170,67 @@
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // 1. DATE PICKER (Now on the Left)
-                    const dateWrap = document.createElement('div');
-                    dateWrap.className = 'control-wrapper' + (item.dueDate ? '' : ' is-empty');
-                    
-                    // Calculate if date is overdue, soon, or normal
-                    let dateClass = "";
-                    if (item.dueDate && !item.checked) {
-                        const due = new Date(item.dueDate + 'T00:00:00'); // Ensure local time
-                        const today = new Date();
-                        today.setHours(0,0,0,0);
-                        const diff = (due - today) / (1000 * 60 * 60 * 24);
-
-                        if (diff < 0) dateClass = "date-overdue";         // Before today
-                        else if (diff < 1) dateClass = "date-due-now";    // Today
-                        else if (diff < 2) dateClass = "date-soon";       // Tomorrow
-                    }
-
-                    const dateDisplay = item.dueDate ? 
-                        `<div class="date-badge ${dateClass}">📅 ${formatDate(item.dueDate)}</div>` : 
-                        `<span>📅</span>`;
-                    dateWrap.innerHTML = dateDisplay;
-
-                    const dateInp = document.createElement('input');
-                    dateInp.type = 'date';
-                    dateInp.className = 'date-input-overlay';
-                    dateInp.value = item.dueDate || '';
-                    dateInp.onchange = () => { item.dueDate = dateInp.value; save(data); };
-                    dateWrap.appendChild(dateInp);
-
-                    // 2. MEMBER PICKER (Now on the Right)
-                    const memWrap = document.createElement('div');
-                    memWrap.className = 'control-wrapper' + (item.idMember ? '' : ' is-empty');
-                    const assigned = boardMembers.find(m => m.id === item.idMember);
-                    
-                    if (assigned) {
-                        const avatarUrl = getAvatarUrl(assigned);
-                        memWrap.innerHTML = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${assigned.initials}</div>`;
-                    } else {
-                        memWrap.innerHTML = '<span style="color:#f2d600">⭐</span>'; 
-                    }
-                    memWrap.onclick = (e) => {
-                        e.stopPropagation();
-                        closeAllMenus();
-                        const menu = document.createElement('div');
-                        menu.className = 'member-menu';
-                        
-                        const noneOpt = document.createElement('div');
-                        noneOpt.className = 'member-option';
-                        noneOpt.innerHTML = `<div class="avatar">?</div><span>None</span>`;
-                        noneOpt.onclick = () => { item.idMember = null; save(data); };
-                        menu.appendChild(noneOpt);
-
-                        boardMembers.forEach(m => {
-                            const opt = document.createElement('div');
-                            opt.className = 'member-option';
-                            const avatarUrl = getAvatarUrl(m);
-                            const img = avatarUrl ? `<img class="avatar" src="${avatarUrl}">` : `<div class="avatar">${m.initials}</div>`;
-                            opt.innerHTML = `${img}<span class="member-name">${m.fullName}</span>`;
-                            opt.onclick = () => { item.idMember = m.id; save(data); };
-                            menu.appendChild(opt);
-                        });
-                        memWrap.appendChild(menu);
+                    // --- ATTENDANCE STATUS BUTTONS ---
+                    const statuses = ['Late', 'Absent', 'Sick', 'Vacation'];
+                    const statusColors = { 
+                        'Late': '#f2d600',    // Yellow
+                        'Absent': '#eb5a46',  // Red
+                        'Sick': '#ff9f1a',    // Orange
+                        'Vacation': '#0079bf' // Blue
                     };
 
+                    statuses.forEach(status => {
+                        const btn = document.createElement('div');
+                        btn.className = 'status-btn';
+                        btn.style.color = statusColors[status];
+                        btn.style.borderColor = statusColors[status];
+                        btn.innerText = status[0]; // Shows L, A, S, or V
+                        btn.title = `Mark ${item.text} as ${status}`;
+
+                        btn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if (!item.text) {
+                                t.alert({ message: "Please enter an employee name first.", display: 'warning' });
+                                return;
+                            }
+
+                            const today = new Date().toLocaleDateString('en-US', { 
+                                month: 'short', day: 'numeric', year: 'numeric' 
+                            });
+
+                            try {
+                                // 1. Find the Registry Board (REPLACE WITH YOUR ACTUAL BOARD ID)
+                                const registryBoardId = '6965633f4fe5254c47e38527';
+                                const cards = await t.getRestApi().get(`boards/${registryBoardId}/cards`);
+                                
+                                // 2. Match Employee Name (Fuzzy match to handle "John Doe - 2026")
+                                const targetCard = cards.find(c => 
+                                    c.name.toLowerCase().includes(item.text.toLowerCase())
+                                );
+
+                                if (targetCard) {
+                                    // 3. Post Comment to log the event
+                                    await t.getRestApi().post(`cards/${targetCard.id}/actions/comments`, {
+                                        text: `Logged: ${status} on ${today}`
+                                    });
+
+                                    t.alert({ message: `Success: ${item.text} marked ${status}`, display: 'success' });
+                                    
+                                    // Optional: Check the main checkbox once logged
+                                    cb.checked = true;
+                                    item.checked = true;
+                                    save(data);
+                                } else {
+                                    t.alert({ message: `No card found for "${item.text}" on Registry Board`, display: 'error' });
+                                }
+                            } catch (err) {
+                                console.error("Attendance Log Error:", err);
+                                t.alert({ message: "API Error. Check your Board ID and Permissions.", display: 'error' });
+                            }
+                        };
+                        controls.appendChild(btn);
+                    });
+                    
                     // 3. DELETE
                     const del = document.createElement('div');
                     del.className = 'delete-btn';
