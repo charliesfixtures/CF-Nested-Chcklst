@@ -3,13 +3,15 @@
 <head>
     <script src="https://p.trellocdn.com/power-up.min.js?key=8a3d78ec37dd6c8669e2f2f997f2e96e"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; margin: 0; padding: 10px; color: #172b4d; }
-        .item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .name { font-size: 14px; font-weight: 600; flex: 1; }
-        .btn-group { display: flex; gap: 4px; }
-        .btn { cursor: pointer; padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px; background: #fff; font-size: 11px; font-weight: bold; }
+        /* Dark Mode friendly colors */
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 10px; color: #b6c2cf; background-color: transparent; }
+        .item { display: flex; align-items: center; justify-content: space-between; padding: 10px 5px; border-bottom: 1px solid #38414a; }
+        .name { font-size: 14px; font-weight: 600; flex: 1; color: #deebff; }
+        .btn-group { display: flex; gap: 6px; }
+        .btn { cursor: pointer; padding: 4px 8px; border: 1px solid #454f59; border-radius: 3px; background: #2c333a; color: #9fadbc; font-size: 11px; font-weight: bold; }
+        .btn:hover { background: #38414a; color: #ffffff; }
         .hidden { display: none; }
-        .mod-primary { background: #0079bf; color: white; border: none; padding: 10px; border-radius: 3px; cursor: pointer; }
+        .mod-primary { background: #579dff; color: #1d2125; border: none; padding: 10px; border-radius: 3px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -17,12 +19,11 @@
         <button id="auth-btn" class="mod-primary">Authorize Attendance 2026</button>
     </div>
 
-    <div id="main-content" class="hidden">
-        <div id="attendance-list">Loading Employees...</div>
+    <div id="main-content">
+        <div id="attendance-list" style="padding: 10px;">Loading Employees...</div>
     </div>
 
     <script>
-        // THIS WAS THE ERROR: We must pass the key and name here!
         var t = TrelloPowerUp.iframe({
             appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
             appName: 'Attendance 2026'
@@ -32,6 +33,7 @@
         var TARGET_LIST_NAME = "2026 Employee";
 
         t.render(function(){
+            // Check auth using the most basic method
             return t.getRestApi().isAuthorized()
             .then(function(authorized) {
                 if (!authorized) {
@@ -41,47 +43,48 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    return fetchRegistryEmployees();
+                    fetchEmployees();
                 }
             });
         });
 
-        function fetchRegistryEmployees() {
-            var listDiv = document.getElementById('attendance-list');
-
-            return t.getRestApi().get('/boards/' + REGISTRY_BOARD_ID + '/lists', { cards: 'open' })
+        function fetchEmployees() {
+            // RAW API CALL: This avoids the ".get is not a function" error
+            t.restApi('GET', '/boards/' + REGISTRY_BOARD_ID + '/lists?cards=open&card_fields=name')
             .then(function(lists) {
                 var masterList = lists.find(function(l) { return l.name === TARGET_LIST_NAME; });
                 
                 if (!masterList) {
-                    listDiv.innerHTML = 'List "' + TARGET_LIST_NAME + '" not found.';
+                    document.getElementById('attendance-list').innerHTML = 'List "' + TARGET_LIST_NAME + '" not found.';
                     return;
                 }
 
                 var html = '';
                 masterList.cards.forEach(function(card) {
-                    html += '<div class="item" id="row-' + card.id + '">' +
+                    html += '<div class="item">' +
                         '<div class="name">' + card.name + '</div>' +
                         '<div class="btn-group">' +
-                            '<button class="btn" style="color:#cf9f02" onclick="log(\'' + card.id + '\', \'Late\')">L</button>' +
-                            '<button class="btn" style="color:#b04632" onclick="log(\'' + card.id + '\', \'Absent\')">A</button>' +
-                            '<button class="btn" style="color:#d97008" onclick="log(\'' + card.id + '\', \'Sick\')">S</button>' +
-                            '<button class="btn" style="color:#0052cc" onclick="log(\'' + card.id + '\', \'Vacation\')">V</button>' +
+                            '<button class="btn" style="color:#f5cd47" onclick="log(\'' + card.id + '\', \'Late\')">L</button>' +
+                            '<button class="btn" style="color:#ef5c48" onclick="log(\'' + card.id + '\', \'Absent\')">A</button>' +
+                            '<button class="btn" style="color:#f29d4b" onclick="log(\'' + card.id + '\', \'Sick\')">S</button>' +
+                            '<button class="btn" style="color:#579dff" onclick="log(\'' + card.id + '\', \'Vacation\')">V</button>' +
                         '</div>' +
                     '</div>';
                 });
 
-                listDiv.innerHTML = html || 'No employees found.';
+                document.getElementById('attendance-list').innerHTML = html || 'No employees found.';
                 t.sizeTo('body');
             })
             .catch(function(err) {
-                listDiv.innerHTML = 'Error syncing. Check Registry Board access.';
+                console.error("API Error:", err);
+                document.getElementById('attendance-list').innerHTML = 'Sync Error. Check Board Access.';
             });
         }
 
         function log(cardId, status) {
             var date = new Date().toLocaleDateString();
-            t.getRestApi().post('/cards/' + cardId + '/actions/comments', {
+            // RAW POST CALL
+            t.restApi('POST', '/cards/' + cardId + '/actions/comments', {
                 text: 'Logged: ' + status + ' on ' + date
             })
             .then(function() {
