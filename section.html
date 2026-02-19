@@ -5,16 +5,14 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif; padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; }
         #main-content { padding-bottom: 20px; } 
-        .item { display: flex; align-items: center; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; }
-        .task-input { flex: 1; font-size: 14px; font-weight: 500; }
+        .item { display: flex; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .task-input { flex: 1; font-size: 14px; font-weight: 500; color: inherit; }
         .item-controls { display: flex; align-items: center; margin-left: 8px; }
-        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; background: rgba(255,255,255,0.05); width: 14px; text-align: center; }
+        .status-btn { font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; background: rgba(255,255,255,0.05); min-width: 14px; text-align: center; }
         .status-btn:hover { background: rgba(255,255,255,0.2); }
         .hidden { display: none !important; }
-        button { background: #0079bf; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; }
-        .item.is-checked { opacity: 0.5; }
-        .item.is-checked .task-input { text-decoration: line-through; }
+        button { background: #0079bf; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-weight: bold; }
+        .is-checked { opacity: 0.4; filter: grayscale(1); }
     </style>
 </head>
 <body>
@@ -39,69 +37,85 @@
             .then(function(authorized) {
                 if (!authorized) {
                     document.getElementById('auth-section').classList.remove('hidden');
+                    document.getElementById('main-content').classList.add('hidden');
                     t.sizeTo(120);
                 } else {
+                    document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
                     return renderAttendanceList();
                 }
             });
         });
         
-        async function renderAttendanceList() {
+        function renderAttendanceList() {
             const listDiv = document.getElementById('list');
-            listDiv.innerHTML = '<div style="padding:10px;">Syncing with Registry...</div>';
+            listDiv.innerHTML = '<div style="padding:15px;">🔍 Syncing with Registry...</div>';
 
-            try {
-                // Corrected API syntax: t.restApi('METHOD', 'PATH')
-                const boardLists = await t.restApi('GET', `/boards/${REGISTRY_BOARD_ID}/lists`);
-                const masterList = boardLists.find(l => l.name === MASTER_LIST_NAME);
+            // We use t.restApi here - this is the standard way to fetch data
+            return t.restApi('GET', `/boards/${REGISTRY_BOARD_ID}/lists`)
+            .then(function(lists) {
+                const masterList = lists.find(l => l.name === MASTER_LIST_NAME);
 
                 if (!masterList) {
-                    listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">List "${MASTER_LIST_NAME}" not found.</div>`;
+                    listDiv.innerHTML = `<div style="padding:15px; color:#eb5a46;">List "${MASTER_LIST_NAME}" not found on Registry Board.</div>`;
+                    t.sizeTo('body');
                     return;
                 }
 
-                const cards = await t.restApi('GET', `/lists/${masterList.id}/cards`);
+                return t.restApi('GET', `/lists/${masterList.id}/cards`);
+            })
+            .then(function(cards) {
+                if (!cards) return;
                 listDiv.innerHTML = ''; 
 
                 cards.forEach(card => {
                     const div = document.createElement('div');
                     div.className = 'item';
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    const name = document.createElement('span');
+                    
+                    const name = document.createElement('div');
                     name.className = 'task-input';
                     name.innerText = card.name;
+
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    const statuses = ['Late', 'Absent', 'Sick', 'Vacation'];
-                    const statusColors = { 'Late': '#f2d600', 'Absent': '#eb5a46', 'Sick': '#ff9f1a', 'Vacation': '#0079bf' };
+                    const statuses = [
+                        { label: 'L', full: 'Late', color: '#f2d600' },
+                        { label: 'A', full: 'Absent', color: '#eb5a46' },
+                        { label: 'S', full: 'Sick', color: '#ff9f1a' },
+                        { label: 'V', full: 'Vacation', color: '#0079bf' }
+                    ];
 
-                    statuses.forEach(status => {
+                    statuses.forEach(s => {
                         const btn = document.createElement('div');
                         btn.className = 'status-btn';
-                        btn.style.color = statusColors[status];
-                        btn.style.borderColor = statusColors[status];
-                        btn.innerText = status[0];
-                        btn.onclick = async () => {
+                        btn.style.color = s.color;
+                        btn.style.borderColor = s.color;
+                        btn.innerText = s.label;
+                        
+                        btn.onclick = function() {
                             const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                            try {
-                                await t.restApi('POST', `/cards/${card.id}/actions/comments`, { text: `Logged: ${status} on ${today}` });
-                                t.alert({ message: `Success: ${card.name} - ${status}`, display: 'success' });
+                            return t.restApi('POST', `/cards/${card.id}/actions/comments`, { 
+                                text: `Logged: ${s.full} on ${today}` 
+                            })
+                            .then(() => {
+                                t.alert({ message: `Logged ${s.full} for ${card.name}`, display: 'success' });
                                 div.classList.add('is-checked');
-                                cb.checked = true;
-                            } catch (e) { t.alert({ message: "Log failed", display: 'error' }); }
+                            })
+                            .catch(() => t.alert({ message: "Failed to log", display: 'error' }));
                         };
                         controls.appendChild(btn);
                     });
-                    div.append(cb, name, controls);
+                    
+                    div.append(name, controls);
                     listDiv.appendChild(div);
                 });
                 t.sizeTo('body');
-            } catch (err) {
-                listDiv.innerHTML = `<div style="padding:10px;">Connection Error. <button onclick="location.reload()">Retry</button></div>`;
-            }
+            })
+            .catch(function(err) {
+                console.error("Registry Load Error:", err);
+                listDiv.innerHTML = `<div style="padding:15px;">Error connecting. <button onclick="location.reload()">Retry</button></div>`;
+            });
         }
 
         document.getElementById('auth-btn').onclick = function() {
