@@ -3,64 +3,21 @@
 <head>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif;
-            padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; 
-        }
-
-        #main-content { padding-bottom: 60px; } 
-
-        .item { 
-            display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif; padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; }
+        #main-content { padding-bottom: 20px; } 
+        .item { display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px; }
         .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        .indent { margin-left: 24px; border-left: 2px solid #5e6c84; }
-
         input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; flex-shrink: 0; }
-
-        .task-input { 
-            border: none; background: transparent; flex: 1; padding: 4px 0; 
-            color: inherit; font-size: 14px; outline: none; min-width: 0;
-        }
-
-        .item-controls {
-            display: flex; align-items: center; margin-left: 8px; flex-shrink: 0;
-        }
-
+        .task-input { border: none; background: transparent; flex: 1; padding: 4px 0; color: inherit; font-size: 14px; outline: none; min-width: 0; }
+        .item-controls { display: flex; align-items: center; margin-left: 8px; flex-shrink: 0; }
         /* --- ATTENDANCE BUTTONS --- */
-        .status-btn {
-            font-size: 10px;
-            font-weight: bold;
-            padding: 2px 5px;
-            border-radius: 3px;
-            margin-right: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            background: rgba(255,255,255,0.05);
-            width: 12px;
-            text-align: center;
-        }
+        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s, transform 0.1s; background: rgba(255,255,255,0.05); width: 12px; text-align: center; }
         .status-btn:hover { background: rgba(255,255,255,0.2); }
         .status-btn:active { transform: scale(0.9); }
-
-        .delete-btn { font-size: 16px; opacity: 0; margin-left: 8px; cursor: pointer; }
-        .item:hover .delete-btn { opacity: 0.6; }
-        .delete-btn:hover { opacity: 1; color: #eb5a46; }
-
-        .footer { padding: 12px 8px; display: flex; gap: 8px; }
         .hidden { display: none !important; }
-        
-        button { 
-            background: rgba(255,255,255,0.1); border: none; color: inherit; 
-            padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px;
-        }
+        button { background: rgba(255,255,255,0.1); border: none; color: inherit; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px; }
         .mod-primary { background: #0079bf; color: white; }
-
-        .item.is-checked .task-input {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
+        .item.is-checked .task-input { text-decoration: line-through; opacity: 0.6; }
     </style>
 </head>
     
@@ -71,10 +28,6 @@
 
     <div id="main-content" class="hidden">
         <div id="list"></div>
-        <div class="footer">
-            <button id="add-main" class="mod-primary">Add Task</button>
-            <button id="add-sub">Add Sub</button>
-        </div>
     </div>
 
     <script>
@@ -82,6 +35,11 @@
           appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
           appName: 'Daily Attendance'
         });
+
+        // --- CONFIGURATION ---
+        // Create a List named "Employee Directory" on your main board
+        const MASTER_LIST_NAME = "Employee Directory"; 
+        const REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
 
         t.render(function(){
             return t.getRestApi().isAuthorized()
@@ -93,127 +51,96 @@
                 } else {
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
-                    return renderChecklist();
+                    return renderAttendanceList();
                 }
             });
         });
         
-        function renderChecklist() {
-            return t.get('card', 'shared', 'checklistData', [])
-            .then(function(data){
-                const listDiv = document.getElementById('list');
-                listDiv.innerHTML = '';
+        async function renderAttendanceList() {
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = 'Loading employees...';
+
+            try {
+                // 1. Get the lists on the current board to find the "Employee Directory"
+                const boardLists = await t.restApi('GET', `/boards/${t.getContext().board}/lists`);
+                const masterList = boardLists.find(l => l.name === MASTER_LIST_NAME);
+
+                if (!masterList) {
+                    listDiv.innerHTML = `Error: Please create a list named "${MASTER_LIST_NAME}" on this board.`;
+                    return;
+                }
+
+                // 2. Get cards from the Employee Directory
+                const cards = await t.restApi('GET', `/lists/${masterList.id}/cards`);
                 
-                data.forEach((item, i) => {
+                listDiv.innerHTML = ''; // Clear loading message
+
+                cards.forEach(card => {
                     const div = document.createElement('div');
-                    div.className = 'item' + (item.isSub ? ' indent' : '') + (item.checked ? ' is-checked' : '');
+                    div.className = 'item';
                     
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
-                    cb.checked = item.checked || false;
-                    cb.onchange = () => { item.checked = cb.checked; save(data); };
-
-                    const txt = document.createElement('input');
-                    txt.className = 'task-input';
-                    txt.value = item.text || '';
-                    txt.placeholder = "Employee Name...";
-                    txt.onblur = () => { item.text = txt.value; save(data); };
+                    // We don't save checkbox state for this approach, it resets daily
+                    
+                    const name = document.createElement('span');
+                    name.className = 'task-input';
+                    name.innerText = card.name;
+                    name.style.flex = '1';
 
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // --- ATTENDANCE STATUS BUTTONS ---
+                    // --- LASV BUTTONS ---
                     const statuses = ['Late', 'Absent', 'Sick', 'Vacation'];
-                    const statusColors = { 
-                        'Late': '#f2d600',    // Yellow
-                        'Absent': '#eb5a46',  // Red
-                        'Sick': '#ff9f1a',    // Orange
-                        'Vacation': '#0079bf' // Blue
-                    };
+                    const statusColors = { 'Late': '#f2d600', 'Absent': '#eb5a46', 'Sick': '#ff9f1a', 'Vacation': '#0079bf' };
 
                     statuses.forEach(status => {
                         const btn = document.createElement('div');
                         btn.className = 'status-btn';
                         btn.style.color = statusColors[status];
                         btn.style.borderColor = statusColors[status];
-                        btn.innerText = status[0]; // Shows L, A, S, or V
-                        btn.title = `Mark ${item.text} as ${status}`;
+                        btn.innerText = status[0];
+                        btn.title = `Mark ${card.name} as ${status}`;
 
                         btn.onclick = async (e) => {
                             e.stopPropagation();
-                            if (!item.text) {
-                                t.alert({ message: "Please enter an employee name first.", display: 'warning' });
-                                return;
-                            }
-
-                            const today = new Date().toLocaleDateString('en-US', { 
-                                month: 'short', day: 'numeric', year: 'numeric' 
-                            });
+                            const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
                             try {
-                                // 1. Find the Registry Board
-                                const registryBoardId = '6965633f4fe5254c47e38527';
-                                const cards = await t.getRestApi().get(`boards/${registryBoardId}/cards`);
-                                
-                                // 2. Match Employee Name
-                                const targetCard = cards.find(c => 
-                                    c.name.toLowerCase().includes(item.text.toLowerCase())
-                                );
+                                // 3. Find the Registry Board
+                                const regCards = await t.getRestApi().get(`boards/${REGISTRY_BOARD_ID}/cards`);
+                                const targetCard = regCards.find(c => c.name.toLowerCase().includes(card.name.toLowerCase()));
 
                                 if (targetCard) {
-                                    // 3. Post Comment to log the event
+                                    // 4. Post Comment
                                     await t.getRestApi().post(`cards/${targetCard.id}/actions/comments`, {
                                         text: `Logged: ${status} on ${today}`
                                     });
-
-                                    t.alert({ message: `Success: ${item.text} marked ${status}`, display: 'success' });
-                                    
-                                    // Optional: Check the main checkbox once logged
+                                    t.alert({ message: `Logged ${status} for ${card.name}`, display: 'success' });
+                                    div.classList.add('is-checked');
                                     cb.checked = true;
-                                    item.checked = true;
-                                    save(data);
                                 } else {
-                                    t.alert({ message: `No card found for "${item.text}" on Registry Board`, display: 'error' });
+                                    t.alert({ message: `Registry card not found for ${card.name}`, display: 'error' });
                                 }
                             } catch (err) {
-                                console.error("Attendance Log Error:", err);
-                                t.alert({ message: "API Error. Check permissions.", display: 'error' });
+                                console.error(err);
+                                t.alert({ message: "API Error", display: 'error' });
                             }
                         };
                         controls.appendChild(btn);
                     });
                     
-                    // 4. DELETE
-                    const del = document.createElement('div');
-                    del.className = 'delete-btn';
-                    del.innerHTML = '❌';
-                    del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); save(data); };
-
-                    // Append controls (buttons + delete) to the div
-                    div.append(cb, txt, controls, del);
+                    div.append(cb, name, controls);
                     listDiv.appendChild(div);
                 });
                 
                 setTimeout(() => t.sizeTo('body'), 50);
-            });
-        }
 
-        async function save(data) {
-            await t.set('card', 'shared', 'checklistData', data);
-            renderChecklist(); 
-        }
-
-        document.getElementById('add-main').onclick = () => addItem(false);
-        document.getElementById('add-sub').onclick = () => addItem(true);
-
-        function addItem(isSub) {
-            t.get('card', 'shared', 'checklistData', [])
-            .then(data => {
-                data = data || [];
-                data.push({ text: '', checked: false, isSub: isSub });
-                return t.set('card', 'shared', 'checklistData', data);
-            })
-            .then(() => renderChecklist());
+            } catch (err) {
+                console.error(err);
+                listDiv.innerHTML = "Error loading list.";
+            }
         }
 
         document.getElementById('auth-btn').onclick = function() {
