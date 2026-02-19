@@ -5,19 +5,19 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif; padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; }
         #main-content { padding-bottom: 20px; } 
-        .item { display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px; }
+        .item { display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
         input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; flex-shrink: 0; }
-        .task-input { border: none; background: transparent; flex: 1; padding: 4px 0; color: inherit; font-size: 14px; outline: none; min-width: 0; }
+        .task-input { border: none; background: transparent; flex: 1; padding: 4px 0; color: inherit; font-size: 14px; outline: none; min-width: 0; font-weight: 500; }
         .item-controls { display: flex; align-items: center; margin-left: 8px; flex-shrink: 0; }
-        /* --- ATTENDANCE BUTTONS --- */
-        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s, transform 0.1s; background: rgba(255,255,255,0.05); width: 12px; text-align: center; }
+        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s, transform 0.1s; background: rgba(255,255,255,0.05); width: 14px; text-align: center; }
         .status-btn:hover { background: rgba(255,255,255,0.2); }
         .status-btn:active { transform: scale(0.9); }
         .hidden { display: none !important; }
         button { background: rgba(255,255,255,0.1); border: none; color: inherit; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px; }
         .mod-primary { background: #0079bf; color: white; }
-        .item.is-checked .task-input { text-decoration: line-through; opacity: 0.6; }
+        .item.is-checked { opacity: 0.6; background: rgba(0,255,0,0.05); }
+        .item.is-checked .task-input { text-decoration: line-through; }
     </style>
 </head>
     
@@ -36,10 +36,10 @@
           appName: 'Daily Attendance'
         });
 
-        // --- CONFIGURATION ---
-        // Create a List named "Employee Directory" on your main board
-        const MASTER_LIST_NAME = "Employee Directory"; 
+        // This is your HIDDEN BOARD where the "2026 Employee" list lives
         const REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
+        // This is the name of the list on that hidden board
+        const MASTER_LIST_NAME = "2026 Employee"; 
 
         t.render(function(){
             return t.getRestApi().isAuthorized()
@@ -58,22 +58,22 @@
         
         async function renderAttendanceList() {
             const listDiv = document.getElementById('list');
-            listDiv.innerHTML = 'Loading employees...';
+            listDiv.innerHTML = '<div style="padding:10px;">Syncing with Registry...</div>';
 
             try {
-                // 1. Get the lists on the current board to find the "Employee Directory"
-                const boardLists = await t.restApi('GET', `/boards/${t.getContext().board}/lists`);
+                // 1. Get all lists from the REGISTRY Board
+                const boardLists = await t.getRestApi().get(`/boards/${REGISTRY_BOARD_ID}/lists`);
                 const masterList = boardLists.find(l => l.name === MASTER_LIST_NAME);
 
                 if (!masterList) {
-                    listDiv.innerHTML = `Error: Please create a list named "${MASTER_LIST_NAME}" on this board.`;
+                    listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">Error: List "${MASTER_LIST_NAME}" not found on Registry Board.</div>`;
+                    t.sizeTo('body');
                     return;
                 }
 
-                // 2. Get cards from the Employee Directory
-                const cards = await t.restApi('GET', `/lists/${masterList.id}/cards`);
-                
-                listDiv.innerHTML = ''; // Clear loading message
+                // 2. Get the actual employee cards from that list
+                const cards = await t.getRestApi().get(`/lists/${masterList.id}/cards`);
+                listDiv.innerHTML = ''; 
 
                 cards.forEach(card => {
                     const div = document.createElement('div');
@@ -81,12 +81,10 @@
                     
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
-                    // We don't save checkbox state for this approach, it resets daily
                     
                     const name = document.createElement('span');
                     name.className = 'task-input';
                     name.innerText = card.name;
-                    name.style.flex = '1';
 
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
@@ -100,32 +98,24 @@
                         btn.className = 'status-btn';
                         btn.style.color = statusColors[status];
                         btn.style.borderColor = statusColors[status];
-                        btn.innerText = status[0];
-                        btn.title = `Mark ${card.name} as ${status}`;
+                        btn.innerText = status[0]; // L, A, S, V
 
                         btn.onclick = async (e) => {
                             e.stopPropagation();
                             const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
                             try {
-                                // 3. Find the Registry Board
-                                const regCards = await t.getRestApi().get(`boards/${REGISTRY_BOARD_ID}/cards`);
-                                const targetCard = regCards.find(c => c.name.toLowerCase().includes(card.name.toLowerCase()));
+                                // Log the comment directly to the card we just found
+                                await t.getRestApi().post(`cards/${card.id}/actions/comments`, {
+                                    text: `Logged: ${status} on ${today}`
+                                });
 
-                                if (targetCard) {
-                                    // 4. Post Comment
-                                    await t.getRestApi().post(`cards/${targetCard.id}/actions/comments`, {
-                                        text: `Logged: ${status} on ${today}`
-                                    });
-                                    t.alert({ message: `Logged ${status} for ${card.name}`, display: 'success' });
-                                    div.classList.add('is-checked');
-                                    cb.checked = true;
-                                } else {
-                                    t.alert({ message: `Registry card not found for ${card.name}`, display: 'error' });
-                                }
+                                t.alert({ message: `Logged ${status} for ${card.name}`, display: 'success' });
+                                div.classList.add('is-checked');
+                                cb.checked = true;
                             } catch (err) {
                                 console.error(err);
-                                t.alert({ message: "API Error", display: 'error' });
+                                t.alert({ message: "API Error logging attendance.", display: 'error' });
                             }
                         };
                         controls.appendChild(btn);
@@ -135,11 +125,11 @@
                     listDiv.appendChild(div);
                 });
                 
-                setTimeout(() => t.sizeTo('body'), 50);
+                t.sizeTo('body');
 
             } catch (err) {
                 console.error(err);
-                listDiv.innerHTML = "Error loading list.";
+                listDiv.innerHTML = `<div style="padding:10px;">Error connecting to Registry Board.</div>`;
             }
         }
 
