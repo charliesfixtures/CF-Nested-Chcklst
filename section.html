@@ -38,6 +38,8 @@
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
             background: rgba(255,255,255,0.05);
+            width: 12px;
+            text-align: center;
         }
         .status-btn:hover { background: rgba(255,255,255,0.2); }
         .status-btn:active { transform: scale(0.9); }
@@ -62,7 +64,7 @@
     </style>
 </head>
     
-<body onclick="closeAllMenus()">
+<body>
     <div id="auth-section" class="hidden" style="padding: 20px; text-align: center;">
         <button id="auth-btn" class="mod-primary">Connect Trello</button>
     </div>
@@ -78,73 +80,23 @@
     <script>
         var t = TrelloPowerUp.iframe({
           appKey: '8a3d78ec37dd6c8669e2f2f997f2e96e',
-          appName: 'Process Checklist'
+          appName: 'Daily Attendance'
         });
 
-        var boardMembers = [];
-
-        function closeAllMenus() {
-            document.querySelectorAll('.member-menu').forEach(m => m.remove());
-        }
-
-    function getAvatarUrl(member) {
-        if (!member) return null;
-
-        // Use avatarUrl if it exists, it's usually the most direct
-        let source = member.avatarUrl || member.avatar;
-
-        if (!source) return null;
-
-        // If the source is already a full URL (starts with http)
-        if (source.indexOf('http') === 0) {
-        // Just clean up the size at the end to ensure it's 30px
-        return source.replace(/\/(50|170)\.png$/, '/30.png');
-        }
-
-        // If it's just a hash/ID code, build the URL correctly
-        return "https://trello-avatars.s3.amazonaws.com/" + source + "/30.png";
-        }
-        
-        function formatDate(dateStr) {
-            if (!dateStr) return "";
-            const d = new Date(dateStr);
-            const now = new Date();
-            const currentYear = now.getFullYear();
-    
-            const options = { month: 'short', day: 'numeric' };
-            // If the date isn't in 2026, add the year to the display
-            if (d.getFullYear() !== currentYear) {
-                options.year = 'numeric';
-            }
-    
-            return d.toLocaleDateString(undefined, options);
-        }
-
-    t.render(function(){
-        return t.getRestApi().isAuthorized()
-        .then(function(authorized) {
-            if (!authorized) {
-                document.getElementById('auth-section').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-                t.sizeTo(120);
-            } else {
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-
-                // Simplified: Ask for 'members' generally
-                return t.board('members')
-                .then(function(board){
-                    // Trello returns the board object; we want the members array
-                    boardMembers = board.members || []; 
+        t.render(function(){
+            return t.getRestApi().isAuthorized()
+            .then(function(authorized) {
+                if (!authorized) {
+                    document.getElementById('auth-section').classList.remove('hidden');
+                    document.getElementById('main-content').classList.add('hidden');
+                    t.sizeTo(120);
+                } else {
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
                     return renderChecklist();
-                })
-                .catch(function(err) {
-                    console.error("Board loading error:", err);
-                    return renderChecklist(); // Run anyway so the list doesn't stay empty
-                });
-            }
+                }
+            });
         });
-    });
         
         function renderChecklist() {
             return t.get('card', 'shared', 'checklistData', [])
@@ -164,7 +116,7 @@
                     const txt = document.createElement('input');
                     txt.className = 'task-input';
                     txt.value = item.text || '';
-                    txt.placeholder = "Add an item...";
+                    txt.placeholder = "Employee Name...";
                     txt.onblur = () => { item.text = txt.value; save(data); };
 
                     const controls = document.createElement('div');
@@ -199,11 +151,11 @@
                             });
 
                             try {
-                                // 1. Find the Registry Board (REPLACE WITH YOUR ACTUAL BOARD ID)
+                                // 1. Find the Registry Board
                                 const registryBoardId = '6965633f4fe5254c47e38527';
                                 const cards = await t.getRestApi().get(`boards/${registryBoardId}/cards`);
                                 
-                                // 2. Match Employee Name (Fuzzy match to handle "John Doe - 2026")
+                                // 2. Match Employee Name
                                 const targetCard = cards.find(c => 
                                     c.name.toLowerCase().includes(item.text.toLowerCase())
                                 );
@@ -225,19 +177,19 @@
                                 }
                             } catch (err) {
                                 console.error("Attendance Log Error:", err);
-                                t.alert({ message: "API Error. Check your Board ID and Permissions.", display: 'error' });
+                                t.alert({ message: "API Error. Check permissions.", display: 'error' });
                             }
                         };
                         controls.appendChild(btn);
                     });
                     
-                    // 3. DELETE
+                    // 4. DELETE
                     const del = document.createElement('div');
                     del.className = 'delete-btn';
                     del.innerHTML = '❌';
                     del.onclick = (e) => { e.stopPropagation(); data.splice(i, 1); save(data); };
 
-                    controls.append(dateWrap, memWrap);
+                    // Append controls (buttons + delete) to the div
                     div.append(cb, txt, controls, del);
                     listDiv.appendChild(div);
                 });
