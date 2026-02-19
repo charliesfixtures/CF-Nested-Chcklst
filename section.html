@@ -5,27 +5,22 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto Sans, Ubuntu, Droid Sans, "Helvetica Neue", sans-serif; padding: 0; margin: 0; background: transparent; color: inherit; overflow: visible; }
         #main-content { padding-bottom: 20px; } 
-        .item { display: flex; align-items: center; padding: 4px 8px; position: relative; min-height: 32px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .item:hover { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; flex-shrink: 0; }
-        .task-input { border: none; background: transparent; flex: 1; padding: 4px 0; color: inherit; font-size: 14px; outline: none; min-width: 0; font-weight: 500; }
-        .item-controls { display: flex; align-items: center; margin-left: 8px; flex-shrink: 0; }
-        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s, transform 0.1s; background: rgba(255,255,255,0.05); width: 14px; text-align: center; }
+        .item { display: flex; align-items: center; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        input[type="checkbox"] { cursor: pointer; margin-right: 12px; width: 16px; height: 16px; }
+        .task-input { flex: 1; font-size: 14px; font-weight: 500; }
+        .item-controls { display: flex; align-items: center; margin-left: 8px; }
+        .status-btn { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; background: rgba(255,255,255,0.05); width: 14px; text-align: center; }
         .status-btn:hover { background: rgba(255,255,255,0.2); }
-        .status-btn:active { transform: scale(0.9); }
         .hidden { display: none !important; }
-        button { background: rgba(255,255,255,0.1); border: none; color: inherit; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px; }
-        .mod-primary { background: #0079bf; color: white; }
-        .item.is-checked { opacity: 0.6; background: rgba(0,255,0,0.05); }
+        button { background: #0079bf; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; }
+        .item.is-checked { opacity: 0.5; }
         .item.is-checked .task-input { text-decoration: line-through; }
     </style>
 </head>
-    
 <body>
     <div id="auth-section" class="hidden" style="padding: 20px; text-align: center;">
-        <button id="auth-btn" class="mod-primary">Connect Trello</button>
+        <button id="auth-btn">Connect Trello Attendance</button>
     </div>
-
     <div id="main-content" class="hidden">
         <div id="list"></div>
     </div>
@@ -36,9 +31,7 @@
           appName: 'Daily Attendance'
         });
 
-        // Registry Board (Source & Destination)
         const REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
-        // List name on the Registry Board
         const MASTER_LIST_NAME = "2026 Employee"; 
 
         t.render(function(){
@@ -46,10 +39,8 @@
             .then(function(authorized) {
                 if (!authorized) {
                     document.getElementById('auth-section').classList.remove('hidden');
-                    document.getElementById('main-content').classList.add('hidden');
                     t.sizeTo(120);
                 } else {
-                    document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
                     return renderAttendanceList();
                 }
@@ -58,42 +49,32 @@
         
         async function renderAttendanceList() {
             const listDiv = document.getElementById('list');
-            listDiv.innerHTML = '<div style="padding:10px;">Loading employee list...</div>';
+            listDiv.innerHTML = '<div style="padding:10px;">Syncing with Registry...</div>';
 
             try {
-                // 1. Get all lists from the Registry Board
-                const boardLists = await t.getRestApi().get(`/boards/${REGISTRY_BOARD_ID}/lists`);
+                // Corrected API syntax: t.restApi('METHOD', 'PATH')
+                const boardLists = await t.restApi('GET', `/boards/${REGISTRY_BOARD_ID}/lists`);
                 const masterList = boardLists.find(l => l.name === MASTER_LIST_NAME);
 
                 if (!masterList) {
-                    listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">Error: List "${MASTER_LIST_NAME}" not found on Registry Board.</div>`;
-                    t.sizeTo('body');
+                    listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">List "${MASTER_LIST_NAME}" not found.</div>`;
                     return;
                 }
 
-                // 2. Get the actual employee cards from that list
-                const cards = await t.getRestApi().get(`/lists/${masterList.id}/cards`);
+                const cards = await t.restApi('GET', `/lists/${masterList.id}/cards`);
                 listDiv.innerHTML = ''; 
-
-                if (cards.length === 0) {
-                    listDiv.innerHTML = '<div style="padding:10px;">No employees found in list.</div>';
-                }
 
                 cards.forEach(card => {
                     const div = document.createElement('div');
                     div.className = 'item';
-                    
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
-                    
                     const name = document.createElement('span');
                     name.className = 'task-input';
                     name.innerText = card.name;
-
                     const controls = document.createElement('div');
                     controls.className = 'item-controls';
 
-                    // --- LASV BUTTONS ---
                     const statuses = ['Late', 'Absent', 'Sick', 'Vacation'];
                     const statusColors = { 'Late': '#f2d600', 'Absent': '#eb5a46', 'Sick': '#ff9f1a', 'Vacation': '#0079bf' };
 
@@ -102,38 +83,24 @@
                         btn.className = 'status-btn';
                         btn.style.color = statusColors[status];
                         btn.style.borderColor = statusColors[status];
-                        btn.innerText = status[0]; // L, A, S, V
-
-                        btn.onclick = async (e) => {
-                            e.stopPropagation();
+                        btn.innerText = status[0];
+                        btn.onclick = async () => {
                             const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
                             try {
-                                // Log the comment directly to the card we just found
-                                await t.getRestApi().post(`cards/${card.id}/actions/comments`, {
-                                    text: `Logged: ${status} on ${today}`
-                                });
-
-                                t.alert({ message: `Logged ${status} for ${card.name}`, display: 'success' });
+                                await t.restApi('POST', `/cards/${card.id}/actions/comments`, { text: `Logged: ${status} on ${today}` });
+                                t.alert({ message: `Success: ${card.name} - ${status}`, display: 'success' });
                                 div.classList.add('is-checked');
                                 cb.checked = true;
-                            } catch (err) {
-                                console.error(err);
-                                t.alert({ message: "API Error logging attendance.", display: 'error' });
-                            }
+                            } catch (e) { t.alert({ message: "Log failed", display: 'error' }); }
                         };
                         controls.appendChild(btn);
                     });
-                    
                     div.append(cb, name, controls);
                     listDiv.appendChild(div);
                 });
-                
                 t.sizeTo('body');
-
             } catch (err) {
-                console.error(err);
-                listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">Error connecting to Registry Board. Check console.</div>`;
+                listDiv.innerHTML = `<div style="padding:10px;">Connection Error. <button onclick="location.reload()">Retry</button></div>`;
             }
         }
 
