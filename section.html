@@ -36,9 +36,9 @@
           appName: 'Daily Attendance'
         });
 
-        // This is your HIDDEN BOARD where the "2026 Employee" list lives
+        // Registry Board (Source & Destination)
         const REGISTRY_BOARD_ID = '6965633f4fe5254c47e38527';
-        // This is the name of the list on that hidden board
+        // List name on the Registry Board
         const MASTER_LIST_NAME = "2026 Employee"; 
 
         t.render(function(){
@@ -58,10 +58,10 @@
         
         async function renderAttendanceList() {
             const listDiv = document.getElementById('list');
-            listDiv.innerHTML = '<div style="padding:10px;">Syncing with Registry...</div>';
+            listDiv.innerHTML = '<div style="padding:10px;">Loading employee list...</div>';
 
             try {
-                // 1. Get all lists from the REGISTRY Board
+                // 1. Get all lists from the Registry Board
                 const boardLists = await t.getRestApi().get(`/boards/${REGISTRY_BOARD_ID}/lists`);
                 const masterList = boardLists.find(l => l.name === MASTER_LIST_NAME);
 
@@ -74,6 +74,10 @@
                 // 2. Get the actual employee cards from that list
                 const cards = await t.getRestApi().get(`/lists/${masterList.id}/cards`);
                 listDiv.innerHTML = ''; 
+
+                if (cards.length === 0) {
+                    listDiv.innerHTML = '<div style="padding:10px;">No employees found in list.</div>';
+                }
 
                 cards.forEach(card => {
                     const div = document.createElement('div');
@@ -129,7 +133,7 @@
 
             } catch (err) {
                 console.error(err);
-                listDiv.innerHTML = `<div style="padding:10px;">Error connecting to Registry Board.</div>`;
+                listDiv.innerHTML = `<div style="padding:10px; color:#eb5a46;">Error connecting to Registry Board. Check console.</div>`;
             }
         }
 
